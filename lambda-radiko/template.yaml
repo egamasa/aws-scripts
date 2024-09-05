@@ -1,0 +1,60 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  lambda-radiko
+
+  Sample SAM Template for lambda-radiko
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 600
+    MemorySize: 512
+
+    # You can add LoggingConfig parameters such as the Logformat, Log Group, and SystemLogLevel or ApplicationLogLevel. Learn more here https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-resource-function.html#sam-function-loggingconfig.
+    LoggingConfig:
+      LogFormat: JSON
+Resources:
+  RadikoDownloadFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: radiko_download/
+      Handler: app.lambda_handler
+      Runtime: python3.12
+      Architectures:
+      - x86_64
+      Layers:
+      - !Ref PythonRadikoLayer
+      - !Ref FFmpegLayer
+
+  PythonRadikoLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: PythonRadikoLayer
+      Description: Python external libraries
+      ContentUri: layers/python/
+      CompatibleRuntimes:
+        - python3.12
+    Metadata:
+      BuildMethod: python3.12
+  FFmpegLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: FFmpegLayer
+      Description: FFmpeg binary
+      ContentUri: layers/bin/
+      CompatibleRuntimes:
+        - python3.12
+    Metadata:
+      BuildMethod: python3.12
+
+Outputs:
+  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
+  # Find out more about other implicit resources you can reference within SAM
+  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
+  RadikoDownloadFunction:
+    Description: Radiko Download Lambda Function ARN
+    Value: !GetAtt RadikoDownloadFunction.Arn
+  RadikoDownloadFunctionIamRole:
+    Description: Implicit IAM Role created for Radiko Download function
+    Value: !GetAtt RadikoDownloadFunctionRole.Arn
