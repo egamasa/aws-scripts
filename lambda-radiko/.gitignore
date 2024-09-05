@@ -243,5 +243,6 @@ $RECYCLE.BIN/
 
 .aws-sam
 layers/bin/*
+!layers/bin/.gitkeep
 
 # End of https://www.gitignore.io/api/osx,linux,python,windows,pycharm,visualstudiocode
