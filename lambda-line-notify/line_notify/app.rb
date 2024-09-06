@@ -78,6 +78,16 @@ def parse_awslogs(event)
   return text_rows.join("\n")
 end
 
+def parse_sns(event)
+  sns_message = event['Records'][0]['Sns']['Message']
+  sns_timestamp = event['Records'][0]['Sns']['Timestamp']
+
+  text_rows = [sns_message]
+  text_rows << format_time(sns_timestamp)
+
+  return text_rows.join("\n")
+end
+
 def parse_event(event)
   body = JSON.parse(event['body'])
 
@@ -98,6 +108,8 @@ def main(event)
   payload = nil
   if event.has_key?('awslogs')
     payload = parse_awslogs(event)
+  elsif event.has_key?('Records')
+    payload = parse_sns(event)
   elsif event.has_key?('body')
     payload = parse_event(event)
   else
