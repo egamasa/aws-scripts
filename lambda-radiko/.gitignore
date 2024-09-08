@@ -241,7 +241,9 @@ $RECYCLE.BIN/
 
 */build/*
 
-.aws-sam
+.aws-sam/*
+.bundle/*
+vendor/*
 layers/bin/*
 !layers/bin/.gitkeep
 

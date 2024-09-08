@@ -8,8 +8,8 @@ Description: >
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
   Function:
-    Timeout: 600
-    MemorySize: 512
+    Timeout: 900
+    MemorySize: 1024
 
     # You can add LoggingConfig parameters such as the Logformat, Log Group, and SystemLogLevel or ApplicationLogLevel. Learn more here https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-resource-function.html#sam-function-loggingconfig.
     LoggingConfig:
@@ -20,23 +20,12 @@ Resources:
     Properties:
       CodeUri: radiko_download/
       Handler: app.lambda_handler
-      Runtime: python3.12
+      Runtime: ruby3.3
       Architectures:
       - x86_64
       Layers:
-      - !Ref PythonRadikoLayer
       - !Ref FFmpegLayer
 
-  PythonRadikoLayer:
-    Type: AWS::Serverless::LayerVersion
-    Properties:
-      LayerName: PythonRadikoLayer
-      Description: Python external libraries
-      ContentUri: layers/python/
-      CompatibleRuntimes:
-        - python3.12
-    Metadata:
-      BuildMethod: python3.12
   FFmpegLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
@@ -44,9 +33,7 @@ Resources:
       Description: FFmpeg binary
       ContentUri: layers/bin/
       CompatibleRuntimes:
-        - python3.12
-    Metadata:
-      BuildMethod: python3.12
+        - ruby3.3
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
