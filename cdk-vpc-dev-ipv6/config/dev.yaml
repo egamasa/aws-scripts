@@ -5,13 +5,17 @@ publicSubnets:
   - name: public-a
     az: ap-northeast-1a
     IPv4Cidr: 10.1.1.0/24
+    IPv6Cidr: "00:00:00:01::/64"
   - name: public-c
     az: ap-northeast-1c
     IPv4Cidr: 10.1.2.0/24
+    IPv6Cidr: "00:00:00:02::/64"
 privateSubnets:
   - name: private-a
     az: ap-northeast-1a
     IPv4Cidr: 10.1.11.0/24
+    IPv6Cidr: "00:00:00:11::/64"
   - name: private-c
     az: ap-northeast-1c
     IPv4Cidr: 10.1.12.0/24
+    IPv6Cidr: "00:00:00:12::/64"

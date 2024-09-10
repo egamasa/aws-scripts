@@ -77,6 +77,7 @@ class CdkVpcDevIpv6Stack(Stack):
                 "{}-subnet-{}".format(config["serviceName"], subnet["name"]),
                 availability_zone=subnet["az"],
                 cidr_block=subnet["IPv4Cidr"],
+                ipv6_cidr_block=subnet["IPv6Cidr"],
                 vpc_id=vpc.vpc_id,
             )
             subnets[subnet["name"]] = dict(subnet=cfn_subnet)
@@ -94,6 +95,7 @@ class CdkVpcDevIpv6Stack(Stack):
                 "{}-subnet-{}".format(config["serviceName"], subnet["name"]),
                 availability_zone=subnet["az"],
                 cidr_block=subnet["IPv4Cidr"],
+                ipv6_cidr_block=subnet["IPv6Cidr"],
                 vpc_id=vpc.vpc_id,
             )
             subnets[subnet["name"]] = dict(subnet=cfn_subnet)
@@ -106,11 +108,12 @@ class CdkVpcDevIpv6Stack(Stack):
             )
 
 
-    def _create_subnet(self, name, availability_zone, cidr_block, vpc_id):
+    def _create_subnet(self, name, availability_zone, cidr_block, ipv6_cidr_block, vpc_id):
         return ec2.CfnSubnet(
             self,
             name,
             cidr_block=cidr_block,
+            ipv6_cidr_block=ipv6_cidr_block,
             availability_zone=availability_zone,
             vpc_id=vpc_id,
             assign_ipv6_address_on_creation=True,
