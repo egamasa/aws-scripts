@@ -1,0 +1,17 @@
+serviceName: dev
+region: ap-northeast-1
+vpcCidr: 10.1.0.0/16
+publicSubnets:
+  - name: public-a
+    az: ap-northeast-1a
+    IPv4Cidr: 10.1.1.0/24
+  - name: public-c
+    az: ap-northeast-1c
+    IPv4Cidr: 10.1.2.0/24
+privateSubnets:
+  - name: private-a
+    az: ap-northeast-1a
+    IPv4Cidr: 10.1.11.0/24
+  - name: private-c
+    az: ap-northeast-1c
+    IPv4Cidr: 10.1.12.0/24
