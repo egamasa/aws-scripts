@@ -1,6 +1,7 @@
 from aws_cdk import (
     Stack,
-    aws_ec2 as ec2
+    aws_ec2 as ec2,
+    Fn
 )
 from constructs import Construct
 
@@ -60,7 +61,11 @@ class CdkVpcDevIpv6Stack(Stack):
         )
 
         # Routes
-        route_public = self._create_route_public(
+        route_public_ipv4 = self._create_route_public_ipv4(
+            rtb_public.ref,
+            igw.ref
+        )
+        route_public_ipv6 = self._create_route_public_ipv6(
             rtb_public.ref,
             igw.ref
         )
@@ -73,11 +78,19 @@ class CdkVpcDevIpv6Stack(Stack):
 
         # Public Subnets
         for index, subnet in enumerate(config["publicSubnets"]):
+            ipv6_cidr_block = Fn.select(
+                index + 1,
+                Fn.cidr(
+                    Fn.select(0, vpc.vpc_ipv6_cidr_blocks),
+                    256,
+                    "64",
+                ),
+            )
             cfn_subnet = self._create_subnet(
                 "{}-subnet-{}".format(config["serviceName"], subnet["name"]),
                 availability_zone=subnet["az"],
                 cidr_block=subnet["IPv4Cidr"],
-                ipv6_cidr_block=subnet["IPv6Cidr"],
+                ipv6_cidr_block=ipv6_cidr_block,
                 vpc_id=vpc.vpc_id,
             )
             subnets[subnet["name"]] = dict(subnet=cfn_subnet)
@@ -91,11 +104,19 @@ class CdkVpcDevIpv6Stack(Stack):
 
         # Private Subnets
         for index, subnet in enumerate(config["privateSubnets"]):
+            ipv6_cidr_block = Fn.select(
+                index + int(config["ipv6CidrOffset"]),
+                Fn.cidr(
+                    Fn.select(0, vpc.vpc_ipv6_cidr_blocks),
+                    256,
+                    "64",
+                ),
+            )
             cfn_subnet = self._create_subnet(
                 "{}-subnet-{}".format(config["serviceName"], subnet["name"]),
                 availability_zone=subnet["az"],
                 cidr_block=subnet["IPv4Cidr"],
-                ipv6_cidr_block=subnet["IPv6Cidr"],
+                ipv6_cidr_block=ipv6_cidr_block,
                 vpc_id=vpc.vpc_id,
             )
             subnets[subnet["name"]] = dict(subnet=cfn_subnet)
@@ -120,12 +141,20 @@ class CdkVpcDevIpv6Stack(Stack):
             map_public_ip_on_launch=False,
         )
 
-    def _create_route_public(self, route_table_id, igw_id):
+    def _create_route_public_ipv4(self, route_table_id, igw_id):
         return ec2.CfnRoute(
             self,
-            "route-public-internet",
+            "route-public-internet-ipv4",
             route_table_id=route_table_id,
             destination_cidr_block="0.0.0.0/0",
+            gateway_id=igw_id,
+        )
+
+    def _create_route_public_ipv6(self, route_table_id, igw_id):
+        return ec2.CfnRoute(
+            self,
+            "route-public-internet-ipv6",
+            route_table_id=route_table_id,
             destination_ipv6_cidr_block="::/0",
             gateway_id=igw_id,
         )
