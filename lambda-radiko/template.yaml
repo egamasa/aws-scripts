@@ -42,7 +42,7 @@ Resources:
     Properties:
       LayerName: FFmpegLayer
       Description: FFmpeg binary
-      ContentUri: layers/bin
+      ContentUri: layers/
       CompatibleRuntimes:
         - ruby3.3
 
