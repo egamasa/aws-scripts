@@ -2,10 +2,7 @@ require 'aws-sdk-s3'
 require 'base64'
 require 'http'
 require 'json'
-require 'net/http'
-require 'open-uri'
 require 'securerandom'
-require 'uri'
 require_relative 'lib/radiko'
 
 RETRY_LIMIT = 3
@@ -14,7 +11,7 @@ THREAD_LIMIT = 3
 def parse_playlist(playlist)
   list = []
 
-  playlist.body.lines.each do |line|
+  playlist.to_s.lines.each do |line|
     next if line.strip.empty? || line.strip.start_with?('#')
     list << line.strip
   end
@@ -95,21 +92,17 @@ def main(event)
       event['to']
     )
 
-  uri = URI.parse(stream_info[:url])
   headers = {
     'X-Radiko-AuthToken' => stream_info[:auth_token],
     'X-Radiko-Device' => 'Ruby.radiko',
     'X-Radiko-User' => 'dummy_user'
   }
-  pre_playlist = Net::HTTP.get_response(uri, headers)
-
+  pre_playlist = HTTP.headers(headers).get(stream_info[:url])
   playlist_urls = parse_playlist(pre_playlist)
 
   segment_urls = []
   playlist_urls.each do |playlist_url|
-    uri = URI.parse(playlist_url)
-    playlist = Net::HTTP.get_response(uri)
-
+    playlist = HTTP.get(playlist_url)
     segments = parse_playlist(playlist)
     segment_urls.concat(segments)
   end
