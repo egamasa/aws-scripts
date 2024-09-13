@@ -4,13 +4,23 @@ require 'http'
 require 'json'
 require 'net/http'
 require 'open-uri'
-require 'rexml/document'
 require 'securerandom'
 require 'uri'
 require_relative 'lib/radiko'
 
 RETRY_LIMIT = 3
 THREAD_LIMIT = 3
+
+def parse_playlist(playlist)
+  list = []
+
+  playlist.body.lines.each do |line|
+    next if line.strip.empty? || line.strip.start_with?('#')
+    list << line.strip
+  end
+
+  return list
+end
 
 def download_file(url, file_path)
   retry_count = 0
@@ -93,25 +103,15 @@ def main(event)
   }
   pre_playlist = Net::HTTP.get_response(uri, headers)
 
-  playlist_urls = []
-  pre_playlist.body.lines do |line|
-    next if line.strip.empty?
-    next if line.strip.start_with?('#')
-    url = line.strip
-    playlist_urls << url
-  end
+  playlist_urls = parse_playlist(pre_playlist)
 
   segment_urls = []
   playlist_urls.each do |playlist_url|
     uri = URI.parse(playlist_url)
     playlist = Net::HTTP.get_response(uri)
 
-    playlist.body.lines do |line|
-      next if line.strip.empty?
-      next if line.strip.start_with?('#')
-      url = line.strip
-      segment_urls << url
-    end
+    segments = parse_playlist(playlist)
+    segment_urls.concat(segments)
   end
 
   file_dir = "/tmp/#{SecureRandom.uuid}"
@@ -126,10 +126,16 @@ def main(event)
     ffmpeg_path = '/opt/bin/ffmpeg'
     ffmpeg_cmd =
       "#{ffmpeg_path} -f concat -safe 0 -i #{segment_list_file_path} -c copy #{aac_file_path}"
-    result = `#{ffmpeg_cmd}`
-    p result
+    begin
+      result = `#{ffmpeg_cmd}`
+      p result
 
-    upload_to_s3(aac_file_path, aac_file_name)
+      upload_to_s3(aac_file_path, aac_file_name)
+    rescue => e
+      p e
+    end
+  else
+    raise 'Failed to download'
   end
 end
 
