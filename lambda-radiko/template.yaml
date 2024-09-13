@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: >
   lambda-radiko
@@ -22,16 +22,27 @@ Resources:
       Handler: app.lambda_handler
       Runtime: ruby3.3
       Architectures:
-      - x86_64
+        - arm64
       Layers:
-      - !Ref FFmpegLayer
+        - !Ref FFmpegLayer
+      Environment:
+        Variables:
+          S3_REGION: !Ref AWS::Region
+          S3_BUCKET_ARN: !Ref BucketArn
+      Policies:
+        - Statement:
+          Effect: Allow
+          Acion:
+            - s3:PutObject
+            - s3:GetObject
+          Resource: !Ref BucketArn
 
   FFmpegLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
       LayerName: FFmpegLayer
       Description: FFmpeg binary
-      ContentUri: layers/bin/
+      ContentUri: layers/bin
       CompatibleRuntimes:
         - ruby3.3
 
