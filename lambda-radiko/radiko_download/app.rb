@@ -155,7 +155,7 @@ def main(event, context)
 
     ffmpeg_path = '/opt/bin/ffmpeg'
     ffmpeg_cmd =
-      "#{ffmpeg_path} -hide_banner -y -safe 0 -f concat -i #{segment_list_file_path} -c copy #{output_file_path} 2>&1"
+      "#{ffmpeg_path} -hide_banner -y -safe 0 -f concat -i '#{segment_list_file_path}' -c copy '#{output_file_path}' 2>&1"
 
     begin
       `#{ffmpeg_cmd}`
