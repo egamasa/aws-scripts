@@ -113,7 +113,7 @@ def main(event)
   segment_file_path_list = download_segments(segment_urls, file_dir)
 
   if segment_urls.count == segment_file_path_list.count
-    aac_file_name = "#{event['station_id']}_#{event['ft']}-#{event['to']}.aac"
+    aac_file_name = "#{event['station_id']}_#{event['ft']}-#{event['to']}.m4a"
     aac_file_path = "#{file_dir}/#{aac_file_name}"
 
     ffmpeg_path = '/opt/bin/ffmpeg'
