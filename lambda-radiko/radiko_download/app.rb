@@ -113,17 +113,18 @@ def main(event)
   segment_file_path_list = download_segments(segment_urls, file_dir)
 
   if segment_urls.count == segment_file_path_list.count
-    aac_file_name = "#{event['station_id']}_#{event['ft']}-#{event['to']}.m4a"
-    aac_file_path = "#{file_dir}/#{aac_file_name}"
+    output_file_name =
+      "#{event['title']}_#{event['station_id']}_#{event['ft'][0...12]}.m4a"
+    output_file_path = "#{file_dir}/#{output_file_name}"
 
     ffmpeg_path = '/opt/bin/ffmpeg'
     ffmpeg_cmd =
-      "#{ffmpeg_path} -hide_banner -y -safe 0 -f concat -i #{segment_list_file_path} -c copy #{aac_file_path} 2>&1"
+      "#{ffmpeg_path} -hide_banner -y -safe 0 -f concat -i #{segment_list_file_path} -c copy #{output_file_path} 2>&1"
     begin
       result = `#{ffmpeg_cmd}`
       p result
 
-      upload_to_s3(aac_file_path, aac_file_name)
+      upload_to_s3(output_file_path, output_file_name)
     rescue => e
       p e
     end
