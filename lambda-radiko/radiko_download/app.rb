@@ -3,6 +3,7 @@ require 'base64'
 require 'http'
 require 'json'
 require 'securerandom'
+require 'time'
 require_relative 'lib/radiko'
 
 RETRY_LIMIT = 3
@@ -110,6 +111,23 @@ def download_segments(urls, file_dir)
   return segment_file_path_list
 end
 
+def build_metadata_options(metadata)
+  options = []
+  {
+    title: metadata['title'],
+    artist: metadata['artist'],
+    album: metadata['album'],
+    album_artist: metadata['album_artist'],
+    date: Time.parse(metadata['date']).strftime('%Y-%m-%d'),
+    comment: metadata['comment']
+  }.each do |key, value|
+    next if value.empty?
+    options << "-metadata #{key}='#{value}'"
+  end
+
+  return options.join(' ')
+end
+
 def upload_to_s3(file_path, file_name)
   s3_client = Aws::S3::Client.new(region: ENV['S3_REGION'])
   s3_bucket = ENV['S3_BUCKET_ARN'].split(':').last
@@ -153,9 +171,20 @@ def main(event, context)
       "#{event['title']}_#{event['station_id']}_#{event['ft'][0...12]}.m4a"
     output_file_path = "#{file_dir}/#{output_file_name}"
 
+    metadata_options = build_metadata_options(event['metadata'])
+
+    unless event['metadata']['img'].empty?
+      artwork_path = "#{file_dir}/#{File.basename(event['metadata']['img'])}"
+      download_file(event['metadata']['img'], artwork_path)
+      artwork_option =
+        "-i '#{artwork_path}' -map 0:a -map 1:v -disposition:1 attached_pic -id3v2_version 3"
+    else
+      artwork_path = nil
+    end
+
     ffmpeg_path = '/opt/bin/ffmpeg'
     ffmpeg_cmd =
-      "#{ffmpeg_path} -hide_banner -y -safe 0 -f concat -i '#{segment_list_file_path}' -c copy '#{output_file_path}' 2>&1"
+      "#{ffmpeg_path} -hide_banner -y -safe 0 -f concat -i '#{segment_list_file_path}' #{artwork_option if artwork_path} #{metadata_options} -c copy '#{output_file_path}' 2>&1"
 
     begin
       `#{ffmpeg_cmd}`
