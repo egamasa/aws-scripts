@@ -8,6 +8,42 @@ require_relative 'lib/radiko'
 RETRY_LIMIT = 3
 THREAD_LIMIT = 3
 
+def logging_error(e, event, context, custom_message = nil)
+  message = custom_message || e.message
+
+  log = {
+    log_level: 'ERROR',
+    error: {
+      message: message,
+      backtrace: e.backtrace,
+      type: e.class.to_s
+    },
+    event: event,
+    context: {
+      function_name: context.function_name,
+      aws_request_id: context.aws_request_id,
+      invoked_function_arn: context.invoked_function_arn
+    }
+  }.to_json
+
+  raise log
+end
+
+def logging_info(message, event, context)
+  log = {
+    log_level: 'INFO',
+    message: message,
+    event: event,
+    context: {
+      function_name: context.function_name,
+      aws_request_id: context.aws_request_id,
+      invoked_function_arn: context.invoked_function_arn
+    }
+  }.to_json
+
+  puts log
+end
+
 def parse_playlist(playlist)
   list = []
 
@@ -82,7 +118,7 @@ def upload_to_s3(file_path, file_name)
   s3_client.put_object(bucket: s3_bucket, key: file_name, body: file_content)
 end
 
-def main(event)
+def main(event, context)
   client = Radiko::Client.new
 
   stream_info =
@@ -120,19 +156,30 @@ def main(event)
     ffmpeg_path = '/opt/bin/ffmpeg'
     ffmpeg_cmd =
       "#{ffmpeg_path} -hide_banner -y -safe 0 -f concat -i #{segment_list_file_path} -c copy #{output_file_path} 2>&1"
-    begin
-      result = `#{ffmpeg_cmd}`
-      p result
 
-      upload_to_s3(output_file_path, output_file_name)
+    begin
+      `#{ffmpeg_cmd}`
     rescue => e
-      p e
+      logging_error(e, event, context, "Error on FFmpeg: #{ffmpeg_cmd}")
     end
   else
-    raise 'Failed to download'
+    logging_error(e, event, context, 'Failed to download segments')
+  end
+
+  begin
+    res = upload_to_s3(output_file_path, output_file_name)
+    if res.etag
+      logging_info(
+        "[#{context.function_name}]\nDownloaded: #{output_file_name}",
+        event,
+        context
+      )
+    end
+  rescue => e
+    logging_error(e, event, context, 'Failed to upload to S3')
   end
 end
 
 def lambda_handler(event:, context:)
-  main(event)
+  main(event, context)
 end
