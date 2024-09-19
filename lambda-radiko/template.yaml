@@ -5,6 +5,11 @@ Description: >
 
   Sample SAM Template for lambda-radiko
 
+Parameters:
+  BucketName:
+    Type: String
+    Default: radiko-download
+
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
   Function:
@@ -27,15 +32,10 @@ Resources:
         - !Ref FFmpegLayer
       Environment:
         Variables:
-          S3_REGION: !Ref AWS::Region
-          S3_BUCKET_ARN: !Ref BucketArn
+          BUCKET_NAME: !Ref BucketName
       Policies:
-        - Statement:
-          Effect: Allow
-          Acion:
-            - s3:PutObject
-            - s3:GetObject
-          Resource: !Ref BucketArn
+        - S3WritePolicy:
+            BucketName: !Ref BucketName
 
   FFmpegLayer:
     Type: AWS::Serverless::LayerVersion
@@ -45,6 +45,11 @@ Resources:
       ContentUri: layers/
       CompatibleRuntimes:
         - ruby3.3
+
+  RadikoDownloadBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref BucketName
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
