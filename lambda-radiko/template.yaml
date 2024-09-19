@@ -36,6 +36,23 @@ Resources:
         - S3WritePolicy:
             BucketName: !Ref BucketName
 
+  RadikoProgramFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: radiko_program/
+      Handler: app.lambda_handler
+      Runtime: ruby3.3
+      MemorySize: 128
+      Timeout: 60
+      Architectures:
+        - arm64
+      Environment:
+        Variables:
+          DOWNLOAD_FUNCTION_NAME: !GetAtt RadikoDownloadFunction.Arn
+      Policies:
+        - LambdaInvokePolicy:
+            FunctionName: !Ref RadikoDownloadFunction
+
   FFmpegLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
