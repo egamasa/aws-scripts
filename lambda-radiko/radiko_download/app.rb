@@ -129,8 +129,8 @@ def build_metadata_options(metadata)
 end
 
 def upload_to_s3(file_path, file_name)
-  s3_client = Aws::S3::Client.new(region: ENV['S3_REGION'])
-  s3_bucket = ENV['S3_BUCKET_ARN'].split(':').last
+  s3_client = Aws::S3::Client.new
+  s3_bucket = ENV['BUCKET_NAME']
   file_content = File.open(file_path, 'rb')
 
   s3_client.put_object(bucket: s3_bucket, key: file_name, body: file_content)
@@ -139,12 +139,7 @@ end
 def main(event, context)
   client = Radiko::Client.new
 
-  stream_info =
-    client.get_timefree_stream_info(
-      event['station_id'],
-      event['ft'],
-      event['to']
-    )
+  stream_info = client.get_timefree_stream_info(event['station_id'], event['ft'], event['to'])
 
   headers = {
     'X-Radiko-AuthToken' => stream_info[:auth_token],
@@ -167,8 +162,7 @@ def main(event, context)
   segment_file_path_list = download_segments(segment_urls, file_dir)
 
   if segment_urls.count == segment_file_path_list.count
-    output_file_name =
-      "#{event['title']}_#{event['station_id']}_#{event['ft'][0...12]}.m4a"
+    output_file_name = "#{event['title']}_#{event['station_id']}_#{event['ft'][0...12]}.m4a"
     output_file_path = "#{file_dir}/#{output_file_name}"
 
     metadata_options = build_metadata_options(event['metadata'])
@@ -198,11 +192,7 @@ def main(event, context)
   begin
     res = upload_to_s3(output_file_path, output_file_name)
     if res.etag
-      logging_info(
-        "[#{context.function_name}]\nDownloaded: #{output_file_name}",
-        event,
-        context
-      )
+      logging_info("[#{context.function_name}]\nDownloaded: #{output_file_name}", event, context)
     end
   rescue => e
     logging_error(e, event, context, 'Failed to upload to S3')
