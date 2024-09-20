@@ -2,48 +2,13 @@ require 'aws-sdk-s3'
 require 'base64'
 require 'http'
 require 'json'
+require 'logger'
 require 'securerandom'
 require 'time'
 require_relative 'lib/radiko'
 
 RETRY_LIMIT = 3
 THREAD_LIMIT = 3
-
-def logging_error(e, event, context, custom_message = nil)
-  message = custom_message || e.message
-
-  log = {
-    log_level: 'ERROR',
-    error: {
-      message: message,
-      backtrace: e.backtrace,
-      type: e.class.to_s
-    },
-    event: event,
-    context: {
-      function_name: context.function_name,
-      aws_request_id: context.aws_request_id,
-      invoked_function_arn: context.invoked_function_arn
-    }
-  }.to_json
-
-  raise log
-end
-
-def logging_info(message, event, context)
-  log = {
-    log_level: 'INFO',
-    message: message,
-    event: event,
-    context: {
-      function_name: context.function_name,
-      aws_request_id: context.aws_request_id,
-      invoked_function_arn: context.invoked_function_arn
-    }
-  }.to_json
-
-  puts log
-end
 
 def parse_playlist(playlist)
   list = []
@@ -137,6 +102,22 @@ def upload_to_s3(file_path, file_name)
 end
 
 def main(event, context)
+  logger = Logger.new($stdout, progname: 'radikoDownload')
+  logger.formatter =
+    proc do |severity, datetime, progname, msg|
+      log = {
+        timestamp: datetime.iso8601,
+        level: severity,
+        progname: progname,
+        message: msg[:text],
+        event: msg[:event]
+      }
+      log[:error] = { type: msg[:error].class.to_a, backtrace: msg[:error].backtrace } if msg[
+        :error
+      ]
+      log.to_json + "\n"
+    end
+
   client = Radiko::Client.new
 
   stream_info = client.get_timefree_stream_info(event['station_id'], event['ft'], event['to'])
@@ -183,19 +164,17 @@ def main(event, context)
     begin
       `#{ffmpeg_cmd}`
     rescue => e
-      logging_error(e, event, context, "Error on FFmpeg: #{ffmpeg_cmd}")
+      logger.error({ text: "Error on FFmpeg: #{ffmpeg_cmd}", event:, error: e })
     end
   else
-    logging_error(e, event, context, 'Failed to download segments')
+    logger.error({ text: 'Failed to download segments', event: })
   end
 
   begin
     res = upload_to_s3(output_file_path, output_file_name)
-    if res.etag
-      logging_info("[#{context.function_name}]\nDownloaded: #{output_file_name}", event, context)
-    end
+    logger.info({ text: "Download completed: #{output_file_name}", event: }) if res.etag
   rescue => e
-    logging_error(e, event, context, 'Failed to upload to S3')
+    logger.error({ text: 'Failed to upload to S3', event:, error: e })
   end
 end
 

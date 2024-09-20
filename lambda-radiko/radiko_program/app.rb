@@ -82,10 +82,16 @@ def search_programs(xml_doc, station_id, target: 'title', keyword:, custom_title
 end
 
 def main(event, context)
-  logger = Logger.new($stdout)
+  logger = Logger.new($stdout, progname: 'radikoProgram')
   logger.formatter =
     proc do |severity, datetime, progname, msg|
-      log = { timestamp: datetime.iso8601, level: severity, message: msg, progname: progname }
+      log = {
+        timestamp: datetime.iso8601,
+        level: severity,
+        progname: progname,
+        message: msg[:text],
+        event: msg[:event]
+      }
       log.to_json + "\n"
     end
 
@@ -101,7 +107,7 @@ def main(event, context)
     )
 
   if programs.empty?
-    logger.warn('No program found')
+    logger.info({ text: "No program found: #{event['title']}", event: })
   else
     lambda_client = Aws::Lambda::Client.new
   end
@@ -115,9 +121,9 @@ def main(event, context)
       )
 
     if res.status_code == 202
-      logger.info("Download requested: #{program[:title]}")
+      logger.info({ text: "Download requested: #{program[:title]}", event: })
     else
-      logger.info("Download request failed: #{program[:title]}")
+      logger.error({ text: "Download request failed: #{program[:title]}", event: })
     end
   end
 end
