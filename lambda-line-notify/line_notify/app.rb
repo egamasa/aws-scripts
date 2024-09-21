@@ -68,7 +68,9 @@ def parse_awslogs(event)
 
   text_rows = []
   data['logEvents'].each do |log|
+    text_rows << "[#{log['progname']}]" if log.has_key?('progname')
     text_rows << log['message']
+    text_rows << log['error'] if log.has_key?('error')
     text_rows << format_time(log['timestamp'])
   end
 
