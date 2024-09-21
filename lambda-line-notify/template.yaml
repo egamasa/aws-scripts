@@ -3,7 +3,13 @@ Transform: AWS::Serverless-2016-10-31
 Description: >
   lambda-line-notify
 
-  Sample SAM Template for lambda-line-notify
+  Notify AWS logs and SNS topics to LINE
+
+Parameters:
+  SecretArn:
+    Type: String
+  SecretRegion:
+    Type: String
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
@@ -20,20 +26,19 @@ Resources:
       Runtime: ruby3.3
       Environment:
         Variables:
-          LINE_SECRET_REGION: !Ref AWS::Region
-          LINE_SECRET_NAME: !Ref SecretName
+          LINE_SECRET_ARN: !Ref SecretArn
+          LINE_SECRET_REGION: !Ref SecretRegion
       Policies:
-        - AWSLambdaBasicExecutionRole
-        - SecretsManagerReadPolicy:
-            SecretName: !Ref SecretName
+        - AWSSecretsManagerGetSecretValuePolicy:
+            SecretArn: !Ref SecretArn
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
   # Find out more about other implicit resources you can reference within SAM
   # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
   LineNotifyFunction:
-    Description: "LINE Notify Lambda Function ARN"
+    Description: 'LINE Notify Lambda Function ARN'
     Value: !GetAtt LineNotifyFunction.Arn
   LineNotifyFunctionIamRole:
-    Description: "Implicit IAM Role created for Hello World function"
+    Description: 'Implicit IAM Role created for LINE Notify function'
     Value: !GetAtt LineNotifyFunctionRole.Arn

@@ -35,7 +35,7 @@ class Line
 end
 
 def get_line_secret
-  secret_name = ENV['LINE_SECRET_NAME']
+  secret_name = ENV['LINE_SECRET_ARN']
   client = Aws::SecretsManager::Client.new(region: ENV['LINE_SECRET_REGION'])
 
   begin
