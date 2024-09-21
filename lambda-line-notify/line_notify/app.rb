@@ -12,27 +12,24 @@ class Line
   def make_broadcast_request(data, secret)
     token = secret['channel_access_token']
     req = Net::HTTP::Post.new(URI.path)
-    req["Content-Type"] = "application/json"
-    req["Authorization"] = "Bearer #{token}"
+    req['Content-Type'] = 'application/json'
+    req['Authorization'] = "Bearer #{token}"
     req.body = data.to_json
 
     return req
   end
 
   def send_broadcast(payload, secret)
-    data = {
-      "messages" => [
-        {
-          "type" => "text",
-          "text" => payload
-        }
-      ]
-    }
+    data = { 'messages' => [{ 'type' => 'text', 'text' => payload }] }
     req = make_broadcast_request(data, secret)
 
-    http = Net::HTTP.new(URI.host, URI.port)
-    Net::HTTP.start(URI.hostname, URI.port, use_ssl: URI.scheme == "https") do |https|
-      https.request(req)
+    begin
+      http = Net::HTTP.new(URI.host, URI.port)
+      Net::HTTP.start(URI.hostname, URI.port, use_ssl: URI.scheme == 'https') do |https|
+        https.request(req)
+      end
+    rescue => e
+      raise e
     end
   end
 end
@@ -44,7 +41,7 @@ def get_line_secret
   begin
     res = client.get_secret_value(secret_id: secret_name)
     secret = JSON.parse(res.secret_string)
-  rescue
+  rescue => e
     raise e
   end
 
@@ -70,35 +67,31 @@ def parse_awslogs(event)
   data = JSON.parse(data_json)
 
   text_rows = []
-  data['logEvents'].each { |log|
+  data['logEvents'].each do |log|
     text_rows << log['message']
     text_rows << format_time(log['timestamp'])
-  }
+  end
 
   return text_rows.join("\n")
 end
 
-def parse_sns(event)
-  sns_message = event['Records'][0]['Sns']['Message']
+def parse_sns_topic(event)
+  text_rows = []
+  text_rows << event['Records'][0]['Sns']['Message']
   sns_timestamp = event['Records'][0]['Sns']['Timestamp']
-
-  text_rows = [sns_message]
   text_rows << format_time(sns_timestamp)
 
   return text_rows.join("\n")
 end
 
 def parse_event(event)
-  body = JSON.parse(event['body'])
-
-  text_rows = [body['message']]
-  text_rows << format_time(Time.now)
-
-  return text_rows.join("\n")
-end
-
-def parse_other(event)
-  text_rows = [event]
+  text_rows = []
+  if event.has_key?('body')
+    body = JSON.parse(event['body'])
+    text_rows << body['message']
+  else
+    text_rows << event
+  end
   text_rows << format_time(Time.now)
 
   return text_rows.join("\n")
@@ -109,11 +102,9 @@ def main(event)
   if event.has_key?('awslogs')
     payload = parse_awslogs(event)
   elsif event.has_key?('Records')
-    payload = parse_sns(event)
-  elsif event.has_key?('body')
-    payload = parse_event(event)
+    payload = parse_sns_topic(event)
   else
-    payload = parse_other(event)
+    payload = parse_event(event)
   end
 
   if payload
