@@ -24,6 +24,8 @@ Resources:
       CodeUri: line_notify/
       Handler: app.lambda_handler
       Runtime: ruby3.3
+      Architectures:
+        - arm64
       Environment:
         Variables:
           LINE_SECRET_ARN: !Ref SecretArn
