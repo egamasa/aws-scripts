@@ -9,6 +9,9 @@ Parameters:
   BucketName:
     Type: String
     Default: radiko-download
+  LogGroupName:
+    Type: String
+    Default: /aws/lambda/lambda-radiko
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
@@ -16,6 +19,7 @@ Globals:
     # You can add LoggingConfig parameters such as the Logformat, Log Group, and SystemLogLevel or ApplicationLogLevel. Learn more here https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-resource-function.html#sam-function-loggingconfig.
     LoggingConfig:
       LogFormat: JSON
+
 Resources:
   RadikoDownloadFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -35,6 +39,8 @@ Resources:
       Policies:
         - S3WritePolicy:
             BucketName: !Ref BucketName
+      LoggingConfig:
+        LogGroup: !Ref LogGroupName
 
   RadikoProgramFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -52,6 +58,8 @@ Resources:
       Policies:
         - LambdaInvokePolicy:
             FunctionName: !Ref RadikoDownloadFunction
+      LoggingConfig:
+        LogGroup: !Ref LogGroupName
 
   FFmpegLayer:
     Type: AWS::Serverless::LayerVersion
