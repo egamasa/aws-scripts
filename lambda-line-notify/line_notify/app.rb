@@ -61,18 +61,30 @@ def format_time(time)
   return time_obj.localtime('+09:00').strftime('%Y-%m-%d %H:%M:%S')
 end
 
+def parse_lambda_log(log)
+  text_rows = []
+
+  begin
+    message = JSON.parse(log['message'])
+    text_rows << "[#{message['progname']}]" if message.has_key?('progname')
+    text_rows << message['message']
+    text_rows << message['error'] if message.has_key?('error')
+    text_rows << format_time(message['timestamp'])
+  rescue StandardError
+    text_rows << log['message']
+    text_rows << format_time(log['timestamp'])
+  end
+
+  return text_rows
+end
+
 def parse_awslogs(event)
   data_base64 = Base64.decode64(event['awslogs']['data'])
   data_json = Zlib::GzipReader.new(StringIO.new(data_base64)).read
   data = JSON.parse(data_json)
 
   text_rows = []
-  data['logEvents'].each do |log|
-    text_rows << "[#{log['progname']}]" if log.has_key?('progname')
-    text_rows << log['message']
-    text_rows << log['error'] if log.has_key?('error')
-    text_rows << format_time(log['timestamp'])
-  end
+  data['logEvents'].each { |log| text_rows.concat(parse_lambda_log(log)) }
 
   return text_rows.join("\n")
 end
@@ -88,13 +100,16 @@ end
 
 def parse_event(event)
   text_rows = []
-  if event.has_key?('body')
+  if event.has_key?('message')
+    text_rows.concat(parse_lambda_log(event))
+  elsif event.has_key?('body')
     body = JSON.parse(event['body'])
     text_rows << body['message']
+    text_rows << format_time(Time.now)
   else
     text_rows << event
+    text_rows << format_time(Time.now)
   end
-  text_rows << format_time(Time.now)
 
   return text_rows.join("\n")
 end
