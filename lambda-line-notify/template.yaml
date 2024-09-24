@@ -6,9 +6,9 @@ Description: >
   Notify AWS logs and SNS topics to LINE
 
 Parameters:
-  SecretArn:
+  LineTokenParameterName:
     Type: String
-  SecretRegion:
+  LineTokenParameterRegion:
     Type: String
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
@@ -28,11 +28,11 @@ Resources:
         - arm64
       Environment:
         Variables:
-          LINE_SECRET_ARN: !Ref SecretArn
-          LINE_SECRET_REGION: !Ref SecretRegion
+          LINE_TOKEN_PARAMETER_NAME: !Ref LineTokenParameterName
+          LINE_TOKEN_PARAMETER_REGION: !Ref LineTokenParameterRegion
       Policies:
-        - AWSSecretsManagerGetSecretValuePolicy:
-            SecretArn: !Ref SecretArn
+        - SSMParameterReadPolicy:
+            ParameterName: !Ref LineTokenParameterName
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function

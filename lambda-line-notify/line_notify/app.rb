@@ -1,4 +1,4 @@
-require 'aws-sdk-secretsmanager'
+require 'aws-sdk-ssm'
 require 'base64'
 require 'json'
 require 'net/http'
@@ -9,8 +9,7 @@ require 'zlib'
 class Line
   URI = URI.parse('https://api.line.me/v2/bot/message/broadcast')
 
-  def make_broadcast_request(data, secret)
-    token = secret['channel_access_token']
+  def make_broadcast_request(data, token)
     req = Net::HTTP::Post.new(URI.path)
     req['Content-Type'] = 'application/json'
     req['Authorization'] = "Bearer #{token}"
@@ -19,9 +18,9 @@ class Line
     return req
   end
 
-  def send_broadcast(payload, secret)
+  def send_broadcast(payload, token)
     data = { 'messages' => [{ 'type' => 'text', 'text' => payload }] }
-    req = make_broadcast_request(data, secret)
+    req = make_broadcast_request(data, token)
 
     begin
       http = Net::HTTP.new(URI.host, URI.port)
@@ -34,18 +33,18 @@ class Line
   end
 end
 
-def get_line_secret
-  secret_name = ENV['LINE_SECRET_ARN']
-  client = Aws::SecretsManager::Client.new(region: ENV['LINE_SECRET_REGION'])
+def get_line_token
+  parameter_name = ENV['LINE_TOKEN_PARAMETER_NAME']
+  client = Aws::SSM::Client.new(region: ENV['LINE_TOKEN_PARAMETER_REGION'])
 
   begin
-    res = client.get_secret_value(secret_id: secret_name)
-    secret = JSON.parse(res.secret_string)
+    req = { name: parameter_name, with_decryption: true }
+    res = client.get_parameter(req)
   rescue => e
     raise e
   end
 
-  return secret
+  return res.parameter.value
 end
 
 def format_time(time)
@@ -125,9 +124,9 @@ def main(event)
   end
 
   if payload
-    line_secret = get_line_secret
+    line_token = get_line_token
     line = Line.new
-    line.send_broadcast(payload.force_encoding('UTF-8'), line_secret)
+    line.send_broadcast(payload.force_encoding('UTF-8'), line_token)
   end
 end
 
