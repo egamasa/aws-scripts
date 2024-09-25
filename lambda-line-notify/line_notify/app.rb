@@ -34,7 +34,7 @@ class Line
 end
 
 def get_line_token
-  parameter_name = ENV['LINE_TOKEN_PARAMETER_NAME']
+  parameter_name = "/#{ENV['LINE_TOKEN_PARAMETER_NAME']}"
   client = Aws::SSM::Client.new(region: ENV['LINE_TOKEN_PARAMETER_REGION'])
 
   begin
