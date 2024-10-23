@@ -19,7 +19,7 @@ def prev_date_of_week(week, include_today: true)
 end
 
 def remove_html_tags(text)
-  text.gsub(%r{</?[^>]+?>}, '').gsub(/\s+/, ' ').strip
+  text.to_s.gsub(%r{</?[^>]+?>}, '').gsub(/\s+/, ' ').strip
 end
 
 def radiko_program_xml(date, station_id)
@@ -72,7 +72,8 @@ def search_programs(xml_doc, station_id, target: 'title', keyword:, custom_title
             album: custom_title || program.elements['title']&.text,
             album_artist: station_name,
             date: xml_doc.elements['//progs/date']&.text,
-            comment: remove_html_tags(program.elements['info']&.text),
+            comment:
+              "#{remove_html_tags(program.elements['desc']&.text)}#{remove_html_tags(program.elements['info']&.text)}",
             img: program.elements['img']&.text
           }
         }

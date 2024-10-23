@@ -86,7 +86,7 @@ def build_metadata_options(metadata)
     date: Time.parse(metadata['date']).strftime('%Y-%m-%d'),
     comment: metadata['comment']
   }.each do |key, value|
-    next if value.empty?
+    next unless value && !value.empty?
     options << "-metadata #{key}='#{value}'"
   end
 
