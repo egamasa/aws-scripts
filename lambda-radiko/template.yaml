@@ -54,10 +54,13 @@ Resources:
         - arm64
       Environment:
         Variables:
-          DOWNLOAD_FUNCTION_NAME: !GetAtt RadikoDownloadFunction.Arn
+          RADIKO_DL_FUNC_NAME: !GetAtt RadikoDownloadFunction.Arn
+          RADIRU_DL_FUNC_NAME: !GetAtt RadiruDownloadFunction.Arn
       Policies:
         - LambdaInvokePolicy:
             FunctionName: !Ref RadikoDownloadFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref RadiruDownloadFunction
       LoggingConfig:
         LogGroup: !Ref LogGroupName
 
