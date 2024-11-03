@@ -42,6 +42,27 @@ Resources:
       LoggingConfig:
         LogGroup: !Ref LogGroupName
 
+  RadiruDownloadFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: radiru_download/
+      Handler: app.lambda_handler
+      Runtime: ruby3.3
+      MemorySize: 512
+      Timeout: 600
+      Architectures:
+        - arm64
+      Layers:
+        - !Ref FFmpegLayer
+      Environment:
+        Variables:
+          BUCKET_NAME: !Ref BucketName
+      Policies:
+        - S3WritePolicy:
+            BucketName: !Ref BucketName
+      LoggingConfig:
+        LogGroup: !Ref LogGroupName
+
   RadikoProgramFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
@@ -54,10 +75,13 @@ Resources:
         - arm64
       Environment:
         Variables:
-          DOWNLOAD_FUNCTION_NAME: !GetAtt RadikoDownloadFunction.Arn
+          RADIKO_DL_FUNC_NAME: !GetAtt RadikoDownloadFunction.Arn
+          RADIRU_DL_FUNC_NAME: !GetAtt RadiruDownloadFunction.Arn
       Policies:
         - LambdaInvokePolicy:
             FunctionName: !Ref RadikoDownloadFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref RadiruDownloadFunction
       LoggingConfig:
         LogGroup: !Ref LogGroupName
 
@@ -82,6 +106,23 @@ Outputs:
   RadikoDownloadFunction:
     Description: Radiko Download Lambda Function ARN
     Value: !GetAtt RadikoDownloadFunction.Arn
+
+  RadiruDownloadFunction:
+    Description: Radiru Download Lambda Function ARN
+    Value: !GetAtt RadiruDownloadFunction.Arn
+
+  RadikoProgramFunction:
+    Description: Radiko Program Lambda Function ARN
+    Value: !GetAtt RadikoProgramFunction.Arn
+
   RadikoDownloadFunctionIamRole:
     Description: Implicit IAM Role created for Radiko Download function
     Value: !GetAtt RadikoDownloadFunctionRole.Arn
+
+  RadiruDownloadFunctionIamRole:
+    Description: Implicit IAM Role created for Radiru Download function
+    Value: !GetAtt RadiruDownloadFunctionRole.Arn
+
+  RadikoProgramFunctionIamRole:
+    Description: Implicit IAM Role created for Radiko Program function
+    Value: !GetAtt RadikoProgramFunctionRole.Arn
