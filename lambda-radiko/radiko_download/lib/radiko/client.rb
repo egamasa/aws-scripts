@@ -44,7 +44,7 @@ module Radiko
     def get_stream_base_urls(station_id, timefree: false, areafree: false)
       return [] unless is_available_station_id?(station_id)
 
-      uri = URI.parse("https://radiko.jp/v3/station/stream/aSmartPhone7o/#{station_id}.xml")
+      uri = URI.parse("https://radiko.jp/v3/station/stream/aSmartPhone7a/#{station_id}.xml")
       response = Net::HTTP.get(uri)
       xml_doc = REXML::Document.new(response)
       timefree_flag = timefree ? '1' : '0'
@@ -101,7 +101,7 @@ module Radiko
 
       uri = URI.parse('https://radiko.jp/v2/api/auth1')
       auth1_headers = {
-        'X-Radiko-App' => 'aSmartPhone7o',
+        'X-Radiko-App' => 'aSmartPhone7a',
         'X-Radiko-App-Version' => VERSION,
         'X-Radiko-Device' => 'Ruby.radiko',
         'X-Radiko-User' => 'dummy_user'
@@ -117,7 +117,7 @@ module Radiko
       coordinate = "#{AREA_LIST[area_id][0]},#{AREA_LIST[area_id][1]},gps"
       uri2 = URI.parse('https://radiko.jp/v2/api/auth2')
       auth2_headers = {
-        'X-Radiko-App' => 'aSmartPhone7o',
+        'X-Radiko-App' => 'aSmartPhone7a',
         'X-Radiko-App-Version' => VERSION,
         'X-Radiko-AuthToken' => auth_token,
         'X-Radiko-Connection' => 'wifi',
