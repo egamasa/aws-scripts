@@ -1,0 +1,49 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Notify AWS CloudWatch logs and SNS topics to Discord channel
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 128
+
+Parameters:
+  BotParamsName:
+    Type: String
+  ChannelId:
+    Type: String
+  LambdaExtensionSsmLayerArn:
+    Type: String
+    Default: 'arn:aws:lambda:ap-northeast-1:133490724326:layer:AWS-Parameters-and-Secrets-Lambda-Extension-Arm64:12'
+
+Resources:
+  NotifyFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: notify/
+      Handler: app.lambda_handler
+      Runtime: ruby3.3
+      Architectures:
+        - arm64
+      Layers:
+        - !Ref LambdaExtensionSsmLayerArn
+      Environment:
+        Variables:
+          BOT_PARAMS_NAME: !Ref BotParamsName
+          CHANNEL_ID: !Ref ChannelId
+      Policies:
+        - SSMParameterWithSlashPrefixReadPolicy:
+            ParameterName: !Ref BotParamsName
+
+Outputs:
+  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
+  # Find out more about other implicit resources you can reference within SAM
+  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
+  NotifyFunction:
+    Description: 'Discord AWS notify Lambda function ARN'
+    Value: !GetAtt NotifyFunction.Arn
+  NotifyFunctionIamRole:
+    Description: 'Implicit IAM Role created for Discord AWS notify function'
+    Value: !GetAtt NotifyFunctionRole.Arn
