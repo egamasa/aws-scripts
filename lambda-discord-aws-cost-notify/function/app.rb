@@ -4,42 +4,61 @@ require 'discordrb/webhooks'
 require 'json'
 require 'net/http'
 
-def get_total_cost
-  response =
-    @ce.get_cost_and_usage(
-      time_period: {
-        start: @start_date,
-        end: @end_date
-      },
-      granularity: 'MONTHLY',
-      metrics: ['AmortizedCost']
-    )
+# 料金取得期間
+def get_billing_term
+  today = Date.today
+  # 開始日: 当月1日
+  start_date = today.yesterday.beginning_of_month.iso8601
+  # 終了日: スクリプト実行日の前日
+  end_date = today.yesterday.iso8601
 
-  total_cost = response.results_by_time.first.total['AmortizedCost']
-  { amount: total_cost.amount.to_f, unit: total_cost.unit }
+  # スクリプト実行日が月初の場合、前月1日～末日を取得期間とする
+  if start_date == end_date
+    start_date = today.prev_month.beginning_of_month.iso8601
+    end_date = today.prev_month.end_of_month.iso8601
+  end
+
+  return start_date, end_date
 end
 
-def get_service_cost_list
+# 料金取得
+def get_costs(start_date, end_date, metric = 'AmortizedCost')
   response =
     @ce.get_cost_and_usage(
       time_period: {
-        start: @start_date,
-        end: @end_date
+        start: start_date,
+        end: end_date
       },
       granularity: 'MONTHLY',
-      metrics: ['AmortizedCost'],
+      metrics: [metric],
       group_by: [{ type: 'DIMENSION', key: 'SERVICE' }]
     )
 
-  response.results_by_time.first.groups.map do |service_group|
-    {
-      service: service_group.keys.first,
-      amount: service_group.metrics['AmortizedCost'].amount.to_f,
-      unit: service_group.metrics['AmortizedCost'].unit
-    }
+  # 月間積算料金（合計）
+  total = 0
+  response.results_by_time.first.groups.each do |group|
+    cost = group.metrics[metric].amount.to_f
+    total += cost
   end
+  cost_total = {
+    amount: total,
+    unit: response.results_by_time.first.groups.first.metrics[metric].unit
+  }
+
+  # 月間積算料金（サービス毎）
+  cost_per_service =
+    response.results_by_time.first.groups.map do |group|
+      {
+        service: group.keys.first,
+        amount: group.metrics[metric].amount.to_f,
+        unit: group.metrics[metric].unit
+      }
+    end
+
+  return cost_total, cost_per_service
 end
 
+# 為替レート取得
 def get_exchange_rate(unit = 'JPY')
   uri = URI('https://www.gaitameonline.com/rateaj/getrate')
   response = Net::HTTP.get(uri)
@@ -50,13 +69,15 @@ def get_exchange_rate(unit = 'JPY')
   rate_info ? rate_info['open'] : nil
 end
 
+# 為替レート計算
 def convert_amount(amount_value, exchange_rate)
   amount_value.to_f * exchange_rate.to_f
 end
 
-def format_amount(billing_info, exchange_rate)
-  amount = billing_info[:amount]
-  unit = billing_info[:unit]
+# 表示フォーマット
+def format_amount(cost_group, exchange_rate)
+  amount = cost_group[:amount]
+  unit = cost_group[:unit]
 
   if exchange_rate
     converted_amount = convert_amount(amount, exchange_rate)
@@ -66,20 +87,8 @@ def format_amount(billing_info, exchange_rate)
   end
 end
 
-def get_billing_term
-  today = Date.today
-  start_date = today.yesterday.beginning_of_month.iso8601
-  end_date = today.yesterday.iso8601
-
-  if start_date == end_date
-    start_date = today.prev_month.beginning_of_month.iso8601
-    end_date = today.prev_month.end_of_month.iso8601
-  end
-
-  return start_date, end_date
-end
-
-def send_message
+# Discord 送信
+def send_message(start_date, end_date, cost_total, cost_per_service)
   unit = 'JPY'
   exchange_rate = get_exchange_rate()
 
@@ -89,11 +98,11 @@ def send_message
   discord_client.execute do |builder|
     builder.add_embed do |embed|
       embed.title = 'AWS 利用料金'
-      embed.description = "#{@start_date} ～ #{@end_date}"
+      embed.description = "#{start_date} ～ #{end_date}"
 
-      embed.add_field(name: '合計', value: format_amount(@total_cost, exchange_rate), inline: false)
+      embed.add_field(name: '合計', value: format_amount(cost_total, exchange_rate), inline: false)
 
-      @service_cost_list.each do |service_cost|
+      cost_per_service.each do |service_cost|
         next if service_cost[:amount].to_f.round(2) == 0.0
 
         embed.add_field(
@@ -117,11 +126,10 @@ def send_message
 end
 
 def lambda_handler(event:, context:)
-  @start_date, @end_date = get_billing_term()
+  start_date, end_date = get_billing_term()
 
   @ce = Aws::CostExplorer::Client.new(region: 'us-east-1')
-  @total_cost = get_total_cost()
-  @service_cost_list = get_service_cost_list()
+  cost_total, cost_per_service = get_costs(start_date, end_date)
 
-  send_message()
+  send_message(start_date, end_date, cost_total, cost_per_service)
 end
