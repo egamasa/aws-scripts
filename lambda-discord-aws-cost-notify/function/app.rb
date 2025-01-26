@@ -31,7 +31,16 @@ def get_costs(start_date, end_date, metric = 'AmortizedCost')
       },
       granularity: 'MONTHLY',
       metrics: [metric],
-      group_by: [{ type: 'DIMENSION', key: 'SERVICE' }]
+      group_by: [{ type: 'DIMENSION', key: 'SERVICE' }],
+      filter: {
+        not: {
+          # クレジット充当額を除外
+          dimensions: {
+            key: 'RECORD_TYPE',
+            values: ['Credit']
+          }
+        }
+      }
     )
 
   # 月間積算料金（合計）
