@@ -5,6 +5,8 @@
 - CDK
   - [cdk-vpc-dev-ipv6](cdk-vpc-dev-ipv6)
 - Lambda
+  - [lambda-discord-aws-cost-notify](lambda-discord-aws-cost-notify)
+  - [lambda-discord-aws-notify](lambda-discord-aws-notify)
   - [lambda-line-notify](lambda-line-notify)
   - [lambda-radiko](lambda-radiko)
 
