@@ -128,7 +128,7 @@ def send_message(start_date, end_date, cost_total, cost_per_service)
         embed.footer = Discordrb::Webhooks::EmbedFooter.new(text: '為替レートの取得に失敗しました')
       end
 
-      embed.color = 0xb4d699
+      embed.color = 0x7aa116
       embed.timestamp = Time.now
     end
   end
