@@ -92,7 +92,12 @@ def send_message(params, extracted_programs)
 
   discord_client.execute do |builder|
     builder.add_embed do |embed|
-      embed.title = 'NHK 放送番組通知'
+      if params['genre']
+        title = Constants::GENRE[params['genre']]
+      else
+        title = params['keyword']
+      end
+      embed.title = "NHK \"#{title}\" の番組放送情報"
 
       extracted_programs.each do |program|
         area_name = "（#{program['area']['name']}）" unless program['service']['id'].include?('s')
