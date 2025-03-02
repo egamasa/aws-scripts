@@ -55,6 +55,8 @@ def fetch_programs(date, service_id, area_id, genre_id = nil)
 end
 
 def search_programs(programs, params)
+  return [] unless programs['list']
+
   extracted_programs = []
   programs['list'].each do |service, programs|
     programs.each do |program|
