@@ -107,7 +107,7 @@ def send_message(params, extracted_programs)
         embed.add_field(
           name: program['title'],
           value:
-            "#{program['content']}\n#{Constants::SERVICE[program['service']['id'].to_sym]}#{area_name} / #{DateTime.parse(program['start_time']).strftime('%Y-%m-%d %H:%M')}",
+            "#{Constants::SERVICE[program['service']['id'].to_sym]}#{area_name} / #{DateTime.parse(program['start_time']).strftime('%Y-%m-%d %H:%M')}\n#{program['content']}",
           inline: false
         )
       end
