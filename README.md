@@ -7,6 +7,7 @@
 - Lambda
   - [lambda-discord-aws-cost-notify](lambda-discord-aws-cost-notify)
   - [lambda-discord-aws-notify](lambda-discord-aws-notify)
+  - [lambda-discord-nhk-program-notify](lambda-discord-nhk-program-notify)
   - [lambda-line-notify](lambda-line-notify)
   - [lambda-radiko](lambda-radiko)
 
