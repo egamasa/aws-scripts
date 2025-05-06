@@ -247,4 +247,6 @@ vendor/*
 layers/bin/*
 !layers/bin/.gitkeep
 
+samconfig.toml
+
 # End of https://www.gitignore.io/api/osx,linux,python,windows,pycharm,visualstudiocode
