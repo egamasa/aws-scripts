@@ -9,6 +9,7 @@
   - [lambda-discord-aws-notify](lambda-discord-aws-notify)
   - [lambda-discord-nhk-program-notify](lambda-discord-nhk-program-notify)
   - [lambda-line-notify](lambda-line-notify)
+  - [lambda-podcast-download](lambda-podcast-download)
   - [lambda-radiko](lambda-radiko)
 
 ## 準備
