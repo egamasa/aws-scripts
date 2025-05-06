@@ -31,6 +31,10 @@ sam deploy --guided
 
 - rss_url
   - ［必須］RSSフィードのURL
+- mode
+  - "all"
+    - 全件ダウンロード
+  - 未指定の場合、最新回のみをダウンロード
 - title
   - 番組タイトル（保存ファイル名に反映）
 

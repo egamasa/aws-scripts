@@ -101,9 +101,13 @@ def main(event, context)
         message: msg[:text],
         event: msg[:event]
       }
-      log[:error] = { type: msg[:error].class.to_a, backtrace: msg[:error].backtrace } if msg[
-        :error
-      ]
+      if msg[:error]
+        log[:error] = {
+          type: msg[:error].class.name,
+          backtrace: msg[:error].is_a?(Exception) ? msg[:error].backtrace : nil,
+          message: msg[:error].to_s
+        }
+      end
       log.to_json + "\n"
     end
 
@@ -112,42 +116,55 @@ def main(event, context)
   rss = RSS::Parser.parse(rss_xml, false)
 
   channel = rss.channel
-  item = rss.items.first
-  audio_url = item.enclosure.url
-  audio_ext = get_file_ext(audio_url)
 
   if event['title']
     title = event['title']
   else
     title = zenkaku_to_hankaku(channel.title)
   end
-  item_date = utc_to_jst(item.pubDate)
 
-  file_dir = "/tmp/#{SecureRandom.uuid}"
-  Dir.mkdir(file_dir)
-
-  file_name = "#{title}_#{item_date.strftime('%Y%m%d%H%M')}#{audio_ext}"
-  file_path = "#{file_dir}/#{file_name}"
-
-  begin
-    download_file(audio_url, file_path)
-  rescue => e
-    logger.error({ text: 'Download failed', error: e.message, event: event })
+  if event['mode'] == 'all'
+    items = rss.items
+  else
+    items = [rss.items.first]
   end
 
-  if audio_ext.downcase == '.mp3'
+  items.each do |item|
+    audio_url = item.enclosure.url
+    audio_ext = get_file_ext(audio_url)
+
+    item_date = utc_to_jst(item.pubDate)
+
+    file_dir = "/tmp/#{SecureRandom.uuid}"
+    Dir.mkdir(file_dir)
+
+    file_name = "#{title}_#{item_date.strftime('%Y%m%d%H%M')}#{audio_ext}"
+    file_path = "#{file_dir}/#{file_name}"
+
     begin
-      update_mp3tags(file_path, channel, item, event)
+      download_file(audio_url, file_path)
     rescue => e
-      logger.error({ text: 'Failed to update mp3 tags', error: e.message, event: event })
+      logger.error({ text: 'Download failed', error: e.message, event: event })
     end
-  end
 
-  begin
-    res = upload_to_s3(file_path, file_name)
-    logger.info({ text: "Download completed: #{file_name}", event: }) if res.etag
-  rescue => e
-    logger.error({ text: 'Failed to upload to S3', error: e.message, event: event })
+    if audio_ext.downcase == '.mp3'
+      begin
+        update_mp3tags(file_path, channel, item, event)
+      rescue => e
+        logger.error({ text: 'Failed to update mp3 tags', error: e.message, event: event })
+      end
+    end
+
+    begin
+      res = upload_to_s3(file_path, file_name)
+      if res.etag
+        logger.info({ text: "Download completed: #{file_name}", event: })
+
+        File.delete(file_path) if File.exist?(file_path)
+      end
+    rescue => e
+      logger.error({ text: 'Failed to upload to S3', error: e.message, event: event })
+    end
   end
 end
 
