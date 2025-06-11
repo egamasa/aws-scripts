@@ -1,9 +1,9 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: >
-  lambda-radiko
+  SAM Template for lambda-radiko
 
-  Sample SAM Template for lambda-radiko
+  lambda-radiko: IP Simulcast Radio Download Tool for AWS Lambda
 
 Parameters:
   BucketName:
@@ -13,24 +13,24 @@ Parameters:
     Type: String
     Default: /aws/lambda/lambda-radiko
 
-# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
   Function:
-    # You can add LoggingConfig parameters such as the Logformat, Log Group, and SystemLogLevel or ApplicationLogLevel. Learn more here https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-resource-function.html#sam-function-loggingconfig.
+    Runtime: ruby3.3
+    Architectures:
+      - arm64
     LoggingConfig:
       LogFormat: JSON
+      LogGroup: !Ref LogGroupName
 
 Resources:
   RadikoDownloadFunction:
-    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Type: AWS::Serverless::Function
     Properties:
+      FunctionName: RadikoDownload
       CodeUri: radiko_download/
       Handler: app.lambda_handler
-      Runtime: ruby3.3
       MemorySize: 512
       Timeout: 600
-      Architectures:
-        - arm64
       Layers:
         - !Ref FFmpegLayer
       Environment:
@@ -39,19 +39,15 @@ Resources:
       Policies:
         - S3WritePolicy:
             BucketName: !Ref BucketName
-      LoggingConfig:
-        LogGroup: !Ref LogGroupName
 
   RadiruDownloadFunction:
-    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Type: AWS::Serverless::Function
     Properties:
+      FunctionName: RadiruDownload
       CodeUri: radiru_download/
       Handler: app.lambda_handler
-      Runtime: ruby3.3
       MemorySize: 512
       Timeout: 600
-      Architectures:
-        - arm64
       Layers:
         - !Ref FFmpegLayer
       Environment:
@@ -60,19 +56,15 @@ Resources:
       Policies:
         - S3WritePolicy:
             BucketName: !Ref BucketName
-      LoggingConfig:
-        LogGroup: !Ref LogGroupName
 
-  RadikoProgramFunction:
-    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+  RadioProgramSearchFunction:
+    Type: AWS::Serverless::Function
     Properties:
-      CodeUri: radiko_program/
+      FunctionName: RadioProgramSearch
+      CodeUri: radio_program_search/
       Handler: app.lambda_handler
-      Runtime: ruby3.3
       MemorySize: 128
       Timeout: 60
-      Architectures:
-        - arm64
       Environment:
         Variables:
           RADIKO_DL_FUNC_NAME: !GetAtt RadikoDownloadFunction.Arn
@@ -82,8 +74,6 @@ Resources:
             FunctionName: !Ref RadikoDownloadFunction
         - LambdaInvokePolicy:
             FunctionName: !Ref RadiruDownloadFunction
-      LoggingConfig:
-        LogGroup: !Ref LogGroupName
 
   FFmpegLayer:
     Type: AWS::Serverless::LayerVersion
@@ -100,29 +90,18 @@ Resources:
       BucketName: !Ref BucketName
 
 Outputs:
-  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
-  # Find out more about other implicit resources you can reference within SAM
-  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
   RadikoDownloadFunction:
-    Description: Radiko Download Lambda Function ARN
+    Description: RadikoDownload Lambda Function ARN
     Value: !GetAtt RadikoDownloadFunction.Arn
 
   RadiruDownloadFunction:
-    Description: Radiru Download Lambda Function ARN
+    Description: RadiruDownload Lambda Function ARN
     Value: !GetAtt RadiruDownloadFunction.Arn
 
-  RadikoProgramFunction:
-    Description: Radiko Program Lambda Function ARN
-    Value: !GetAtt RadikoProgramFunction.Arn
+  RadioProgramSearchFunction:
+    Description: RadioProgramSearch Lambda Function ARN
+    Value: !GetAtt RadioProgramSearchFunction.Arn
 
-  RadikoDownloadFunctionIamRole:
-    Description: Implicit IAM Role created for Radiko Download function
-    Value: !GetAtt RadikoDownloadFunctionRole.Arn
-
-  RadiruDownloadFunctionIamRole:
-    Description: Implicit IAM Role created for Radiru Download function
-    Value: !GetAtt RadiruDownloadFunctionRole.Arn
-
-  RadikoProgramFunctionIamRole:
-    Description: Implicit IAM Role created for Radiko Program function
-    Value: !GetAtt RadikoProgramFunctionRole.Arn
+  RadioDownloadBucket:
+    Description: RadioDownload S3 Bucket ARN
+    Value: !GetAtt RadikoDownloadBucket.Arn
