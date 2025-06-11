@@ -97,7 +97,7 @@ module Radiko
     private
 
     def get_auth_token(area_id)
-      raise 'Invalid area_id' unless area_id.match?(/JP[1-47]/)
+      raise 'Invalid area_id' unless area_id.match?(/\AJP([1-9]|[1-3][0-9]|4[0-7])\z/)
 
       uri = URI.parse('https://radiko.jp/v2/api/auth1')
       auth1_headers = {
