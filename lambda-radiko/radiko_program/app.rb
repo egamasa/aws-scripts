@@ -9,7 +9,7 @@ require 'uri'
 
 WDAY_LIST = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 }.freeze
 
-# 指定曜日の日付算出
+# 直近の指定曜日の日付を算出
 def prev_date_of_week(week, include_today: true)
   wday = WDAY_LIST[week]
   base_date = Date.today - (include_today ? 0 : 1)
@@ -200,7 +200,8 @@ def main(event, context)
     mode = :radiko
   end
 
-  program_date = prev_date_of_week(event['week'].to_sym)
+  is_today = event.key?('today') ? event['today'] : true
+  program_date = prev_date_of_week(event['week'].to_sym, include_today: is_today)
 
   case mode
   when :radiko
