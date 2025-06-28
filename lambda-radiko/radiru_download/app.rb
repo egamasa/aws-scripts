@@ -2,6 +2,7 @@ require 'aws-sdk-s3'
 require 'http'
 require 'json'
 require 'logger'
+require 'open3'
 require 'openssl'
 require 'securerandom'
 require 'uri'
@@ -116,10 +117,11 @@ def build_metadata_options(metadata)
     comment: metadata['comment']
   }.each do |key, value|
     next unless value && !value.empty?
-    options << "-metadata #{key}='#{value}'"
+    options << '-metadata'
+    options << "#{key}=#{value}"
   end
 
-  return options.join(' ')
+  return options
 end
 
 def upload_to_s3(file_path, file_name)
@@ -180,20 +182,42 @@ def main(event, context)
     unless event['metadata']['img'].empty?
       artwork_path = "#{file_dir}/#{File.basename(event['metadata']['img'])}"
       download_file(event['metadata']['img'], artwork_path)
-      artwork_option =
-        "-i '#{artwork_path}' -map 0:a -map 1:v -disposition:1 attached_pic -id3v2_version 3"
+      artwork_option = [
+        '-i',
+        artwork_path,
+        '-map',
+        '0:a',
+        '-map',
+        '1:v',
+        '-disposition:1',
+        'attached_pic',
+        '-id3v2_version',
+        '3'
+      ]
     else
       artwork_path = nil
     end
 
     ffmpeg_path = '/opt/bin/ffmpeg'
-    ffmpeg_cmd =
-      "#{ffmpeg_path} -hide_banner -y -safe 0 -f concat -i '#{segment_list_file_path}' #{artwork_option if artwork_path} #{metadata_options} -c copy '#{output_file_path}' 2>&1"
+    ffmpeg_cmd = [
+      ffmpeg_path,
+      '-hide_banner',
+      '-y',
+      '-safe',
+      '0',
+      '-f',
+      'concat',
+      '-i',
+      segment_list_file_path
+    ]
+    ffmpeg_cmd.concat(artwork_option) if artwork_path
+    ffmpeg_cmd.concat(metadata_options)
+    ffmpeg_cmd.concat(['-c', 'copy', output_file_path])
 
     begin
-      `#{ffmpeg_cmd}`
+      _, stderr, _ = Open3.capture3(*ffmpeg_cmd)
     rescue => e
-      logger.error({ text: "Error on FFmpeg: #{ffmpeg_cmd}", event:, error: e })
+      logger.error({ text: "Error on FFmpeg: #{ffmpeg_cmd}", event:, error: stderr })
     end
   else
     logger.error({ text: 'Failed to download segments', event: })
@@ -203,7 +227,7 @@ def main(event, context)
     res = upload_to_s3(output_file_path, output_file_name)
     logger.info({ text: "Download completed: #{output_file_name}", event: }) if res.etag
   rescue => e
-    logger.error({ text: 'Failed to upload to S3', event:, error: e })
+    logger.error({ text: "Failed to upload to S3: #{output_file_path}", event:, error: e })
   end
 end
 
