@@ -151,6 +151,7 @@ def search_radiru_programs(list, keyword:, custom_title: nil)
     program_info = get_radiru_program_info(program)
     program_info['episodes'].each do |episode|
       ft, to = parse_radiru_aa_contents_id(episode['aa_contents_id'])
+      next unless ft.include?(onair_date)
 
       if program_info['radio_broadcast'].split(',').count == 1
         station_id = "NHK-#{program_info['radio_broadcast']}"
