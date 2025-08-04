@@ -1,0 +1,36 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:
+  WebhookUrlParameterName:
+    Type: String
+    Description: SSM Parameter name of Discord Webhook URL
+  LambdaExtensionSsmLayerArn:
+    Type: String
+    Default: 'arn:aws:lambda:ap-northeast-1:133490724326:layer:AWS-Parameters-and-Secrets-Lambda-Extension-Arm64:12'
+
+Globals:
+  Function:
+    Runtime: ruby3.3
+    Architectures:
+      - arm64
+    LoggingConfig:
+      LogFormat: JSON
+
+Resources:
+  SnsToDiscordFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: NotifySnsToDiscord
+      CodeUri: sns-to-discord/
+      Handler: app.lambda_handler
+      MemorySize: 128
+      Timeout: 60
+      Layers:
+        - Ref: LambdaExtensionSsmLayerArn
+      Environment:
+        Variables:
+          WEBHOOK_URL_PARAMETER_NAME: !Ref WebhookUrlParameterName
+      Policies:
+        - SSMParameterWithSlashPrefixReadPolicy:
+            ParameterName: !Ref WebhookUrlParameterName
