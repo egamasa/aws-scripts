@@ -84,6 +84,10 @@ def build_embed(message)
         embed.add_field(name: field['name'], value: field['value'], inline: field['inline'])
       end
     end
+
+    if message[:data]['footer']
+      embed.footer = Discordrb::Webhooks::EmbedFooter.new(text: message[:data]['footer'])
+    end
   end
 
   embed.title = title || message[:subject]
