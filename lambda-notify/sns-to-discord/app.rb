@@ -44,19 +44,6 @@ def extract_messages(event)
   return messages
 end
 
-def format_time(time)
-  case time
-  when Time
-    time_obj = time
-  when Integer
-    time_obj = Time.at(time / 1000.0)
-  else
-    time_obj = Time.parse(time)
-  end
-
-  return time_obj.localtime('+09:00').strftime('%Y-%m-%d %H:%M:%S')
-end
-
 def get_embed_color(status)
   case status
   when 'OK'
@@ -73,10 +60,14 @@ end
 def build_embed(message)
   embed = Discordrb::Webhooks::Embed.new
 
+  title = message[:subject]
+  description = message[:message]
+  timestamp = message[:timestamp]
+
   if message[:data]
     title = [message[:data]['service'], message[:data]['title']].compact.join(' / ')
     description = message[:data]['message']
-    timestamp = format_time(message[:data]['timestamp'])
+    timestamp = message[:data]['timestamp']
     embed.color = get_embed_color(message[:data]['status'])
 
     if message[:data]['fields']&.is_a?(Array)
@@ -90,9 +81,9 @@ def build_embed(message)
     end
   end
 
-  embed.title = title || message[:subject]
-  embed.description = description || message[:message]
-  embed.timestamp = Time.parse(timestamp || message[:timestamp])
+  embed.title = title
+  embed.description = description
+  embed.timestamp = Time.parse(timestamp)
 
   return embed
 end
