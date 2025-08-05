@@ -25,7 +25,7 @@ Resources:
       CodeUri: sns-to-discord/
       Handler: app.lambda_handler
       MemorySize: 128
-      Timeout: 60
+      Timeout: 30
       Layers:
         - Ref: LambdaExtensionSsmLayerArn
       Environment:
@@ -34,3 +34,20 @@ Resources:
       Policies:
         - SSMParameterWithSlashPrefixReadPolicy:
             ParameterName: !Ref WebhookUrlParameterName
+      Events:
+        SNSEvent:
+          Type: SNS
+          Properties:
+            Topic: !Ref NotifySnsToDiscordTopic
+  NotifySnsToDiscordTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: NotifySnsToDiscordTopic
+
+Outputs:
+  SnsToDiscordFunctionArn:
+    Description: SnsToDiscord Function ARN
+    Value: !GetAtt SnsToDiscordFunction.Arn
+  NotifySnsToDiscordTopicArn:
+    Description: NotifySnsToDiscord Topic ARN
+    Value: !Ref NotifySnsToDiscordTopic
