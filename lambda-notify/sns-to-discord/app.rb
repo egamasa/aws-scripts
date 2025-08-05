@@ -27,14 +27,13 @@ def extract_messages(event)
 
   if event['Records']
     event['Records'].each do |record|
-      message = { subject: nil, message: nil, timestamp: nil, data: nil }
+      message = { subject: nil, message: nil, timestamp: record['Sns']['Timestamp'], data: nil }
 
       begin
         message[:data] = JSON.parse(record['Sns']['Message'])
       rescue JSON::ParserError
         message[:subject] = record['Sns']['Subject']
         message[:message] = record['Sns']['Message']
-        message[:timestamp] = record['Sns']['Timestamp']
       end
 
       messages << message
@@ -67,7 +66,7 @@ def build_embed(message)
   if message[:data]
     title = [message[:data]['service'], message[:data]['title']].compact.join(' / ')
     description = message[:data]['message']
-    timestamp = message[:data]['timestamp']
+    timestamp = message[:data]['timestamp'] if message[:data]['timestamp']
     embed.color = get_embed_color(message[:data]['status'])
 
     if message[:data]['fields']&.is_a?(Array)
