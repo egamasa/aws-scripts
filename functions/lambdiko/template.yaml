@@ -37,6 +37,7 @@ Resources:
       Timeout: 600
       Layers:
         - !Ref FFmpegLayer
+        - !Ref LambdikoCoreLayer
       Environment:
         Variables:
           BUCKET_NAME: !Ref BucketName
@@ -58,6 +59,7 @@ Resources:
       Timeout: 600
       Layers:
         - !Ref FFmpegLayer
+        - !Ref LambdikoCoreLayer
       Environment:
         Variables:
           BUCKET_NAME: !Ref BucketName
@@ -100,6 +102,17 @@ Resources:
       ContentUri: layers/
       CompatibleRuntimes:
         - ruby3.4
+
+  LambdikoCoreLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: !Sub '${StackName}-core-layer'
+      Description: Lambdiko shared Ruby library
+      ContentUri: layers/ruby/
+      CompatibleRuntimes:
+        - ruby3.4
+    Metadata:
+      BuildMethod: ruby3.4
 
 Outputs:
   RadikoDownloadFunction:

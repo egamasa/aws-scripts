@@ -13,6 +13,7 @@ IPサイマルラジオ ダウンロードツール for AWS Lambda
   - arm64 アーキテクチャ
   - Ruby 3.4 ランタイム
 - AWS SAM CLI（デプロイ時）
+- Ruby 3.4（ローカルテスト時）
 
 ## デプロイ
 
@@ -70,6 +71,52 @@ sam deploy --guided --config-env dev
 - NotifySnsTopicArn
   - ダウンロード完了通知 送信先SNSトピックARN
     - [discord-notify](../discord-notify/) をデプロイし、出力される `DiscordNotifyFunctionArn` を指定する想定
+
+## ローカルテスト
+
+### RSpec（ユニットテスト）
+
+Lambda Layer の共通ライブラリ（`layers/ruby/lambdiko/`）に対するユニットテストを RSpec で実行する。
+
+```bash
+bundle install
+bundle exec rspec
+```
+
+テスト対象：
+
+- `spec/lambdiko/metadata_spec.rb`
+  - `parse_metadata_date`
+  - `build_metadata_options`
+  - `build_artwork_option`
+- `spec/lambdiko/s3_spec.rb`
+  - `upload_to_s3`
+- `spec/lambdiko/ffmpeg_spec.rb`
+  - `run_ffmpeg`
+  - `probe_duration`
+
+### sam local invoke
+
+`env.json.example` をコピーして環境変数を設定し、`sam local invoke` で実行する。
+
+```bash
+cp env.json.example env.json
+# env.json 内の BUCKET_NAME および SNS_TOPIC_ARN を実際の値に書き換える
+
+sam build
+
+sam local invoke RadikoDownloadFunction \
+  --event events/radiko-download.json \
+  --env-vars env.json
+
+sam local invoke RadiruDownloadFunction \
+  --event events/radiru-download.json \
+  --env-vars env.json
+
+sam local invoke ProgramSearchFunction \
+  --event events/program-search-radiko.json \
+  --env-vars env.json
+```
 
 ## 機能・使用方法
 
