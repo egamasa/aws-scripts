@@ -7,11 +7,17 @@ require 'logger'
 require 'open3'
 require 'openssl'
 require 'securerandom'
+require 'time'
 require 'uri'
 
 LOGGER = Logger.new($stdout)
 RETRY_LIMIT = 3
 THREAD_LIMIT = 3
+WDAY_JA = %w[日 月 火 水 木 金 土].freeze
+
+def to_time(time_str)
+  Time.strptime(time_str, '%Y%m%d%H%M%S')
+end
 
 def parse_playlist(playlist, base_url = nil)
   list = []
@@ -110,6 +116,23 @@ def download_segments(urls, file_dir)
   threads.each(&:join)
 
   segment_file_path_list.compact
+end
+
+def format_airtime(ft_str, to_str)
+  ft = to_time(ft_str)
+  to = to_time(to_str)
+
+  date = ft.to_date
+
+  ft_hh = ft.hour.to_s.rjust(2, '0')
+  ft_mm = ft.strftime('%M')
+  to_hh = to.hour.to_s.rjust(2, '0')
+  to_mm = to.strftime('%M')
+
+  {
+    file_name: "#{date.strftime('%Y%m%d')}#{ft_hh}#{ft_mm}",
+    notify: "#{date.strftime('%Y-%m-%d')}（#{WDAY_JA[date.wday]}）#{ft_hh}:#{ft_mm}-#{to_hh}:#{to_mm}"
+  }
 end
 
 def parse_metadata_date(date_str)
@@ -214,7 +237,9 @@ def main(event, context)
 
     raise 'Segment count mismatch' unless segment_urls.count == segment_files_count
 
-    output_file_name = "#{event['title']}_#{event['station_id']}_#{event['ft'][0...12]}.m4a"
+    airtime = format_airtime(event['ft'], event['to'])
+
+    output_file_name = "#{event['title']}_#{event['station_id']}_#{airtime[:file_name]}.m4a"
     output_file_path = "#{file_dir}/#{output_file_name}"
 
     metadata_options = build_metadata_options(event['metadata'])
@@ -245,12 +270,7 @@ def main(event, context)
 
     fields = [
       { name: 'Title', value: event['metadata']['title'], inline: false },
-      {
-        name: 'On Air',
-        value:
-          "#{parse_metadata_date(event['ft'][0..7])} #{event['ft'][8..9]}:#{event['ft'][10..11]}-#{event['to'][8..9]}:#{event['to'][10..11]}",
-        inline: true
-      },
+      { name: 'On Air', value: airtime[:notify], inline: true },
       { name: 'Size', value: file_size, inline: true }
     ]
     send_notify(status: :ok, description: s3_file_path, fields: fields)

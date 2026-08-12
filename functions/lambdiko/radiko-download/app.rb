@@ -14,6 +14,7 @@ LOGGER = Logger.new($stdout)
 RETRY_LIMIT = 3
 THREAD_LIMIT = 3
 SEEK_SEC = 300
+WDAY_JA = %w[日 月 火 水 木 金 土].freeze
 
 def to_time(time_str)
   Time.strptime(time_str, '%Y%m%d%H%M%S')
@@ -109,7 +110,7 @@ def format_airtime(ft_str, to_str)
 
   {
     file_name: "#{date.strftime('%Y%m%d')}#{ft_hh}#{ft_mm}",
-    notify: "#{date.strftime('%Y-%m-%d')} #{ft_hh}:#{ft_mm}-#{to_hh}:#{to_mm}"
+    notify: "#{date.strftime('%Y-%m-%d')}（#{WDAY_JA[date.wday]}）#{ft_hh}:#{ft_mm}-#{to_hh}:#{to_mm}"
   }
 end
 
