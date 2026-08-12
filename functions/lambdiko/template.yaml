@@ -4,6 +4,9 @@ Description: >
   Lambdiko - IP simulcast radio download tools for AWS Lambda
 
 Parameters:
+  StackName:
+    Type: String
+    Default: lambdiko
   BucketName:
     Type: String
     Default: radiko-download
@@ -28,7 +31,7 @@ Resources:
   RadikoDownloadFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: lambdiko-radiko-download
+      FunctionName: !Sub '${StackName}-radiko-download'
       CodeUri: radiko-download/
       MemorySize: 512
       Timeout: 600
@@ -49,7 +52,7 @@ Resources:
   RadiruDownloadFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: lambdiko-radiru-download
+      FunctionName: !Sub '${StackName}-radiru-download'
       CodeUri: radiru-download/
       MemorySize: 512
       Timeout: 600
@@ -70,7 +73,7 @@ Resources:
   ProgramSearchFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: lambdiko-program-search
+      FunctionName: !Sub '${StackName}-program-search'
       CodeUri: program-search/
       MemorySize: 128
       Timeout: 60
@@ -92,7 +95,7 @@ Resources:
   FFmpegLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
-      LayerName: ffmpeg-layer
+      LayerName: !Sub '${StackName}-ffmpeg-layer'
       Description: FFmpeg binary
       ContentUri: layers/
       CompatibleRuntimes:

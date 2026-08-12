@@ -22,13 +22,47 @@ IPサイマルラジオ ダウンロードツール for AWS Lambda
 
 ### デプロイ
 
+`samconfig.toml` に本番（`default`）と開発（`dev`）の2環境を定義している。
+初回デプロイ前に `samconfig.toml` の各パラメータを環境に合わせて編集すること。
+
+#### 本番環境
+
+- スタック名： `lambdiko`
+- 関数名： `lambdiko-*`
+
 ```bash
 sam build
+sam deploy
+```
+
+#### 開発環境
+
+- スタック名： `lambdiko-dev`
+- 関数名： `lambdiko-dev-*`
+
+```bash
+sam build
+sam deploy --config-env dev
+```
+
+開発環境の確認が終わったら、以下で削除する。
+
+```bash
+sam delete --stack-name lambdiko-dev
+```
+
+初回デプロイ時など、対話形式で設定したい場合は `--guided` を付けて実行する。
+
+```bash
 sam deploy --guided
+sam deploy --guided --config-env dev
 ```
 
 ### パラメータ
 
+- StackName
+  - Lambda 関数名・レイヤー名のプレフィックス
+  - `samconfig.toml` で環境ごとに自動設定される
 - BucketName
   - 音声ファイルの保存先 S3 バケット名
 - LogGroupName
