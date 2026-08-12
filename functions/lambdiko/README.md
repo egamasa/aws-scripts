@@ -18,7 +18,7 @@ IPサイマルラジオ ダウンロードツール for AWS Lambda
 
 ### FFmpeg バイナリの入手
 
-ビルド実行前に、 https://www.johnvansickle.com/ffmpeg/ より **ARM64** 版の静的ビルドバイナリをダウンロードし、`layers/bin` ディレクトリ内に ffmpeg を配置する。
+ビルド実行前に、 https://www.johnvansickle.com/ffmpeg/ より **ARM64** 版の静的ビルドバイナリをダウンロードし、`layers/bin` ディレクトリ内に ffmpeg および ffprobe を配置する。
 
 ### デプロイ
 
@@ -99,7 +99,7 @@ sam deploy --guided
 
 ### lambdiko-radiko-download
 
-radiko タイムフリー番組をダウンロードし、S3へアップロードする。  
+radiko タイムフリー番組をダウンロードし、S3へアップロードする。
 通常は `lambdiko-program-search` から渡されるイベントパラメータで実行するが、単独で手動実行も可能。
 
 #### イベントパラメータ
@@ -126,7 +126,7 @@ radiko タイムフリー番組をダウンロードし、S3へアップロー�
 
 ### lambdiko-radiru-download
 
-らじる★らじる 聴き逃し番組をダウンロードし、S3へアップロードする。  
+らじる★らじる 聴き逃し番組をダウンロードし、S3へアップロードする。
 通常は `lambdiko-program-search` から渡されるイベントパラメータで実行するが、単独で手動実行も可能。
 
 #### イベントパラメータ

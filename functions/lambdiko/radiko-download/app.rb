@@ -14,6 +14,7 @@ LOGGER = Logger.new($stdout)
 RETRY_LIMIT = 3
 THREAD_LIMIT = 3
 SEEK_SEC = 300
+WDAY_JA = %w[日 月 火 水 木 金 土].freeze
 
 def to_time(time_str)
   Time.strptime(time_str, '%Y%m%d%H%M%S')
@@ -109,7 +110,7 @@ def format_airtime(ft_str, to_str)
 
   {
     file_name: "#{date.strftime('%Y%m%d')}#{ft_hh}#{ft_mm}",
-    notify: "#{date.strftime('%Y-%m-%d')} #{ft_hh}:#{ft_mm}-#{to_hh}:#{to_mm}"
+    notify: "#{date.strftime('%Y-%m-%d')}（#{WDAY_JA[date.wday]}）#{ft_hh}:#{ft_mm}-#{to_hh}:#{to_mm}"
   }
 end
 
@@ -261,12 +262,35 @@ def main(event, context)
     s3_file_path = upload_to_s3(output_file_path, output_file_name)
 
     file_size = "#{(File.size(output_file_path).to_f / 1024 / 1024).round(2)} MB"
-    LOGGER.info("Download completed: #{s3_file_path} (#{file_size})")
+
+    # ffprobe 再生時間取得
+    ffprobe_cmd = [
+      '/opt/bin/ffprobe',
+      '-v',
+      'error',
+      '-show_entries',
+      'format=duration',
+      '-of',
+      'default=noprint_wrappers=1:nokey=1',
+      output_file_path
+    ]
+    ffprobe_out, _, ffprobe_status = Open3.capture3(*ffprobe_cmd)
+    duration =
+      if ffprobe_status.success? && !ffprobe_out.strip.empty?
+        total_sec = ffprobe_out.strip.to_f.round
+        h, m, s = total_sec / 3600, (total_sec % 3600) / 60, total_sec % 60
+        (h > 0 ? "#{h}h" : '') + "#{m}m#{s}s"
+      else
+        LOGGER.warn("ffprobe failed: #{ffprobe_out}")
+        '-h--m--s'
+      end
+
+    LOGGER.info("Download completed: #{s3_file_path} (#{file_size} / #{duration})")
 
     fields = [
       { name: 'Title', value: event['metadata']['title'], inline: false },
       { name: 'On Air', value: airtime[:notify], inline: true },
-      { name: 'Size', value: file_size, inline: true }
+      { name: 'Size', value: "#{file_size} / #{duration}", inline: true }
     ]
     send_notify(status: :ok, description: s3_file_path, fields: fields)
   ensure
