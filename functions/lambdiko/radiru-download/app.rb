@@ -11,9 +11,9 @@ require 'openssl'
 require 'securerandom'
 require 'time'
 require 'uri'
-require 'lambdiko/s3'
-require 'lambdiko/metadata'
 require 'lambdiko/ffmpeg'
+require 'lambdiko/metadata'
+require 'lambdiko/s3'
 
 LOGGER = Logger.new($stdout)
 RETRY_LIMIT = 3

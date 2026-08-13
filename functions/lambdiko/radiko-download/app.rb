@@ -9,10 +9,10 @@ require 'json'
 require 'logger'
 require 'securerandom'
 require 'time'
-require_relative 'lib/radiko'
-require 'lambdiko/s3'
-require 'lambdiko/metadata'
 require 'lambdiko/ffmpeg'
+require 'lambdiko/metadata'
+require 'lambdiko/s3'
+require_relative 'lib/radiko'
 
 LOGGER = Logger.new($stdout)
 RETRY_LIMIT = 3
