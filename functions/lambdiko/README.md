@@ -13,6 +13,7 @@ IPサイマルラジオ ダウンロードツール for AWS Lambda
   - arm64 アーキテクチャ
   - Ruby 3.4 ランタイム
 - AWS SAM CLI（デプロイ時）
+- Ruby 3.4（ローカルテスト時）
 
 ## デプロイ
 
@@ -22,13 +23,47 @@ IPサイマルラジオ ダウンロードツール for AWS Lambda
 
 ### デプロイ
 
+`samconfig.toml` に本番（`default`）と開発（`dev`）の2環境を定義している。
+初回デプロイ前に `samconfig.toml` の各パラメータを環境に合わせて編集すること。
+
+#### 本番環境
+
+- スタック名： `lambdiko`
+- 関数名： `lambdiko-*`
+
 ```bash
 sam build
+sam deploy
+```
+
+#### 開発環境
+
+- スタック名： `lambdiko-dev`
+- 関数名： `lambdiko-dev-*`
+
+```bash
+sam build
+sam deploy --config-env dev
+```
+
+開発環境の確認が終わったら、以下で削除する。
+
+```bash
+sam delete --stack-name lambdiko-dev
+```
+
+初回デプロイ時など、対話形式で設定したい場合は `--guided` を付けて実行する。
+
+```bash
 sam deploy --guided
+sam deploy --guided --config-env dev
 ```
 
 ### パラメータ
 
+- StackName
+  - Lambda 関数名・レイヤー名のプレフィックス
+  - `samconfig.toml` で環境ごとに自動設定される
 - BucketName
   - 音声ファイルの保存先 S3 バケット名
 - LogGroupName
@@ -36,6 +71,52 @@ sam deploy --guided
 - NotifySnsTopicArn
   - ダウンロード完了通知 送信先SNSトピックARN
     - [discord-notify](../discord-notify/) をデプロイし、出力される `DiscordNotifyFunctionArn` を指定する想定
+
+## ローカルテスト
+
+### RSpec（ユニットテスト）
+
+Lambda Layer の共通ライブラリ（`layers/ruby/lambdiko/`）に対するユニットテストを RSpec で実行する。
+
+```bash
+bundle install
+bundle exec rspec
+```
+
+テスト対象：
+
+- `spec/lambdiko/metadata_spec.rb`
+  - `parse_metadata_date`
+  - `build_metadata_options`
+  - `build_artwork_option`
+- `spec/lambdiko/s3_spec.rb`
+  - `upload_to_s3`
+- `spec/lambdiko/ffmpeg_spec.rb`
+  - `run_ffmpeg`
+  - `probe_duration`
+
+### sam local invoke
+
+`env.json.example` をコピーして環境変数を設定し、`sam local invoke` で実行する。
+
+```bash
+cp env.json.example env.json
+# env.json 内の BUCKET_NAME および SNS_TOPIC_ARN を実際の値に書き換える
+
+sam build
+
+sam local invoke RadikoDownloadFunction \
+  --event events/radiko-download.json \
+  --env-vars env.json
+
+sam local invoke RadiruDownloadFunction \
+  --event events/radiru-download.json \
+  --env-vars env.json
+
+sam local invoke ProgramSearchFunction \
+  --event events/program-search-radiko.json \
+  --env-vars env.json
+```
 
 ## 機能・使用方法
 

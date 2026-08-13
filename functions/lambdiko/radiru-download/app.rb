@@ -1,14 +1,19 @@
-require 'aws-sdk-s3'
+unless File.exist?('/opt/ruby/lib/lambdiko')
+  $LOAD_PATH.unshift(File.expand_path('../../layers/ruby', __dir__))
+end
+
 require 'aws-sdk-sns'
 require 'fileutils'
 require 'http'
 require 'json'
 require 'logger'
-require 'open3'
 require 'openssl'
 require 'securerandom'
 require 'time'
 require 'uri'
+require 'lambdiko/ffmpeg'
+require 'lambdiko/metadata'
+require 'lambdiko/s3'
 
 LOGGER = Logger.new($stdout)
 RETRY_LIMIT = 3
@@ -135,59 +140,6 @@ def format_airtime(ft_str, to_str)
   }
 end
 
-def parse_metadata_date(date_str)
-  return nil if date_str.nil? || date_str.empty?
-  Time.parse(date_str).strftime('%Y-%m-%d')
-rescue StandardError
-  nil
-end
-
-def build_metadata_options(metadata)
-  date = parse_metadata_date(metadata['date'])
-
-  {
-    title: metadata['title'],
-    artist: metadata['artist'],
-    album: metadata['album'],
-    album_artist: metadata['album_artist'],
-    date: date,
-    comment: metadata['comment']
-  }.flat_map { |key, value| value && !value.empty? ? ['-metadata', "#{key}=#{value}"] : [] }
-end
-
-def build_artwork_option(metadata, file_dir)
-  img_url = metadata&.dig('img')
-  return nil if img_url.nil? || img_url.empty?
-
-  artwork_path = "#{file_dir}/#{File.basename(img_url)}"
-  unless download_file(img_url, artwork_path)
-    LOGGER.warn("Artwork download failed: #{img_url}")
-    return nil
-  end
-
-  [
-    '-i',
-    artwork_path,
-    '-map',
-    '0:a',
-    '-map',
-    '1:v',
-    '-disposition:1',
-    'attached_pic',
-    '-id3v2_version',
-    '3'
-  ]
-end
-
-def upload_to_s3(file_path, file_name)
-  s3_bucket = ENV['BUCKET_NAME']
-  File.open(file_path, 'rb') do |file|
-    Aws::S3::Client.new.put_object(bucket: s3_bucket, key: file_name, body: file)
-  end
-
-  "s3://#{s3_bucket}/#{file_name}"
-end
-
 def sns_publish(message)
   sns = Aws::SNS::Client.new
   sns.publish(topic_arn: ENV['SNS_TOPIC_ARN'], message: message.to_json)
@@ -245,49 +197,12 @@ def main(event, context)
     metadata_options = build_metadata_options(event['metadata'])
     artwork_option = build_artwork_option(event['metadata'], file_dir)
 
-    ffmpeg_cmd = [
-      '/opt/bin/ffmpeg',
-      '-hide_banner',
-      '-y',
-      '-safe',
-      '0',
-      '-f',
-      'concat',
-      '-i',
-      segment_list_file_path
-    ]
-    ffmpeg_cmd.concat(artwork_option) if artwork_option
-    ffmpeg_cmd.concat(metadata_options)
-    ffmpeg_cmd.concat(['-c', 'copy', output_file_path])
-
-    _, stderr, status = Open3.capture3(*ffmpeg_cmd)
-    raise "FFmpeg failed: #{stderr}" unless status.success?
+    run_ffmpeg(segment_list_file_path, output_file_path, metadata_options, artwork_option)
 
     s3_file_path = upload_to_s3(output_file_path, output_file_name)
 
     file_size = "#{(File.size(output_file_path).to_f / 1024 / 1024).round(2)} MB"
-
-    # ffprobe 再生時間取得
-    ffprobe_cmd = [
-      '/opt/bin/ffprobe',
-      '-v',
-      'error',
-      '-show_entries',
-      'format=duration',
-      '-of',
-      'default=noprint_wrappers=1:nokey=1',
-      output_file_path
-    ]
-    ffprobe_out, _, ffprobe_status = Open3.capture3(*ffprobe_cmd)
-    duration =
-      if ffprobe_status.success? && !ffprobe_out.strip.empty?
-        total_sec = ffprobe_out.strip.to_f.round
-        h, m, s = total_sec / 3600, (total_sec % 3600) / 60, total_sec % 60
-        (h > 0 ? "#{h}h" : '') + "#{m}m#{s}s"
-      else
-        LOGGER.warn("ffprobe failed: #{ffprobe_out}")
-        '-h--m--s'
-      end
+    duration = probe_duration(output_file_path)
 
     LOGGER.info("Download completed: #{s3_file_path} (#{file_size} / #{duration})")
 

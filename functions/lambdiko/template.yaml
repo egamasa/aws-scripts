@@ -4,6 +4,9 @@ Description: >
   Lambdiko - IP simulcast radio download tools for AWS Lambda
 
 Parameters:
+  StackName:
+    Type: String
+    Default: lambdiko
   BucketName:
     Type: String
     Default: radiko-download
@@ -28,12 +31,13 @@ Resources:
   RadikoDownloadFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: lambdiko-radiko-download
+      FunctionName: !Sub '${StackName}-radiko-download'
       CodeUri: radiko-download/
       MemorySize: 512
       Timeout: 600
       Layers:
         - !Ref FFmpegLayer
+        - !Ref LambdikoCoreLayer
       Environment:
         Variables:
           BUCKET_NAME: !Ref BucketName
@@ -49,12 +53,13 @@ Resources:
   RadiruDownloadFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: lambdiko-radiru-download
+      FunctionName: !Sub '${StackName}-radiru-download'
       CodeUri: radiru-download/
       MemorySize: 512
       Timeout: 600
       Layers:
         - !Ref FFmpegLayer
+        - !Ref LambdikoCoreLayer
       Environment:
         Variables:
           BUCKET_NAME: !Ref BucketName
@@ -70,7 +75,7 @@ Resources:
   ProgramSearchFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: lambdiko-program-search
+      FunctionName: !Sub '${StackName}-program-search'
       CodeUri: program-search/
       MemorySize: 128
       Timeout: 60
@@ -92,11 +97,22 @@ Resources:
   FFmpegLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
-      LayerName: ffmpeg-layer
+      LayerName: !Sub '${StackName}-ffmpeg-layer'
       Description: FFmpeg binary
       ContentUri: layers/
       CompatibleRuntimes:
         - ruby3.4
+
+  LambdikoCoreLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: !Sub '${StackName}-core-layer'
+      Description: Lambdiko shared Ruby library
+      ContentUri: layers/ruby/
+      CompatibleRuntimes:
+        - ruby3.4
+    Metadata:
+      BuildMethod: ruby3.4
 
 Outputs:
   RadikoDownloadFunction:
