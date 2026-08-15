@@ -72,6 +72,28 @@ Resources:
                 - sns:Publish
               Resource: !Ref NotifySnsTopicArn
 
+  HibikiDownloadFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub '${StackName}-hibiki-download'
+      CodeUri: hibiki-download/
+      MemorySize: 512
+      Timeout: 600
+      Layers:
+        - !Ref FFmpegLayer
+        - !Ref LambdikoCoreLayer
+      Environment:
+        Variables:
+          BUCKET_NAME: !Ref BucketName
+      Policies:
+        - S3WritePolicy:
+            BucketName: !Ref BucketName
+        - Statement:
+            - Effect: Allow
+              Action:
+                - sns:Publish
+              Resource: !Ref NotifySnsTopicArn
+
   ProgramSearchFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -83,11 +105,14 @@ Resources:
         Variables:
           RADIKO_DL_FUNC_NAME: !GetAtt RadikoDownloadFunction.Arn
           RADIRU_DL_FUNC_NAME: !GetAtt RadiruDownloadFunction.Arn
+          HIBIKI_DL_FUNC_NAME: !GetAtt HibikiDownloadFunction.Arn
       Policies:
         - LambdaInvokePolicy:
             FunctionName: !Ref RadikoDownloadFunction
         - LambdaInvokePolicy:
             FunctionName: !Ref RadiruDownloadFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref HibikiDownloadFunction
         - Statement:
             - Effect: Allow
               Action:
@@ -122,6 +147,10 @@ Outputs:
   RadiruDownloadFunction:
     Description: RadiruDownload Lambda Function ARN
     Value: !GetAtt RadiruDownloadFunction.Arn
+
+  HibikiDownloadFunction:
+    Description: HibikiDownload Lambda Function ARN
+    Value: !GetAtt HibikiDownloadFunction.Arn
 
   ProgramSearchFunction:
     Description: ProgramSearch Lambda Function ARN
