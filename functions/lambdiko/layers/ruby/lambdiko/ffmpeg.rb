@@ -17,7 +17,7 @@ def run_ffmpeg(segment_list_file_path, output_file_path, metadata_options, artwo
   ]
   cmd.concat(artwork_option) if artwork_option
   cmd.concat(metadata_options)
-  cmd.concat(['-c', 'copy', output_file_path])
+  cmd.concat(['-c', 'copy', '-bsf:a', 'aac_adtstoasc', output_file_path])
 
   _, stderr, status = Open3.capture3(*cmd)
   raise "FFmpeg failed: #{stderr}" unless status.success?
