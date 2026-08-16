@@ -83,6 +83,9 @@ def download_segments(urls, file_dir)
     end
   threads.each(&:join)
 
+  failed_count = urls.size - segment_file_path_list.compact.size
+  LOGGER.warn("#{failed_count} segment(s) failed to download") if failed_count > 0
+
   segment_file_path_list.compact
 end
 
