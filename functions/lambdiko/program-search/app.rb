@@ -200,7 +200,12 @@ def search_hibiki_programs(list, targets: ['name'], keyword:, custom_title: nil)
         date: program_info['episode_updated_at']&.delete('^0-9')&.[](0..7) || '',
         comment:
           remove_html_tags(
-            program_info['episode']['episode_parts'][0]['description'].tr('　', ' ').squeeze(' ')
+            program_info['episode']['episode_parts']
+              &.[](0)
+              &.[]('description')
+              .to_s
+              .tr('　', ' ')
+              .squeeze(' ')
           ),
         img: program_info['sp_image_url']
       }
