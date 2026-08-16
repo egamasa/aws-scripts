@@ -126,6 +126,10 @@ def download_segments(urls, file_dir)
   segment_file_path_list.compact
 end
 
+def sanitize_filename(filename)
+  filename.to_s.gsub(%r{[/\\:*?"<>|]}, '_')
+end
+
 def format_airtime(ft_str, to_str)
   ft = to_time(ft_str)
   to = to_time(to_str)
@@ -196,7 +200,8 @@ def main(event, context)
 
     airtime = format_airtime(event['ft'], event['to'])
 
-    output_file_name = "#{event['title']}_#{event['station_id']}_#{airtime[:file_name]}.m4a"
+    output_file_name =
+      "#{sanitize_filename(event['title'])}_#{event['station_id']}_#{airtime[:file_name]}.m4a"
     output_file_path = "#{file_dir}/#{output_file_name}"
 
     metadata_options = build_metadata_options(event['metadata'])

@@ -161,6 +161,11 @@ def to_time(time_str)
   Time.strptime(time_str, '%Y%m%d%H%M%S')
 end
 
+# ファイル保存
+def sanitize_filename(filename)
+  filename.to_s.gsub(%r{[/\\:*?"<>|]}, '_')
+end
+
 def format_airtime(ft_str)
   ft = to_time(ft_str)
   date = ft.to_date
@@ -230,7 +235,8 @@ def main(event, _context)
 
     airtime = format_airtime(event['ft'])
 
-    output_file_name = "#{event['title']}_#{event['station_id']}_#{airtime[:file_name]}.m4a"
+    output_file_name =
+      "#{sanitize_filename(event['title'])}_#{event['station_id']}_#{airtime[:file_name]}.m4a"
     output_file_path = "#{file_dir}/#{output_file_name}"
 
     metadata_options = build_metadata_options(event['metadata'])
