@@ -169,6 +169,8 @@ def main(event, context)
     pre_playlist = HTTP.get(stream_url)
     playlist_urls, *_ = parse_playlist(pre_playlist)
 
+    raise 'No playlist URLs found' if playlist_urls.empty?
+
     file_dir = "/tmp/#{SecureRandom.uuid}"
     Dir.mkdir(file_dir) unless Dir.exist?(file_dir)
 
