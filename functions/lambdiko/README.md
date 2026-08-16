@@ -6,6 +6,7 @@ IPサイマルラジオ ダウンロードツール for AWS Lambda
 
 - radiko タイムフリー
 - NHKラジオ らじる★らじる 聴き逃し番組
+- 響 - HiBiKi Radio Station
 
 ## 動作環境
 
@@ -113,6 +114,10 @@ sam local invoke RadiruDownloadFunction \
   --event events/radiru-download.json \
   --env-vars env.json
 
+sam local invoke HibikiDownloadFunction \
+  --event events/hibiki-download.json \
+  --env-vars env.json
+
 sam local invoke ProgramSearchFunction \
   --event events/program-search-radiko.json \
   --env-vars env.json
@@ -128,6 +133,8 @@ sam local invoke ProgramSearchFunction \
   - radiko タイムフリー ダウンロード
 - lambdiko-radiru-download
   - らじる★らじる 聴き逃し番組 ダウンロード
+- lambdiko-hibiki-download
+  - 響 - HiBiKi Radio Station ダウンロード
 
 ### lambdiko-program-search
 
@@ -138,11 +145,13 @@ sam local invoke ProgramSearchFunction \
 - `station_id` 放送局ID
   - radiko： `TBS`, `QRR`, `FMT` など
   - らじる： `NHK` 固定
+  - 響： `HIBIKI` 固定
 - `week` 検索対象曜日
   - `sun`, `mon`, `tue`, `wed`, `thu`, `fri`, `sat`
 - `target` 検索対象フィールド
   - radiko： `title`, `pfm`, `desc`, `info`
   - らじる： `title` のみ指定可能
+  - 響： `name`, `description`, `cast` など
 - `keyword` 検索キーワード
 - `title` カスタムタイトル（省略可）
   - 保存時のファイル名に反映される。同じ番組を定期録音する場合に、ファイル名を揃えることができる。省略時は番組表から取得した番組タイトルをファイル名に使用する。
@@ -233,3 +242,31 @@ radiko タイムフリー番組をダウンロードし、S3へアップロー�
 #### 実行例
 
 [event.json の例](./events/radiru-download.json)
+
+### lambdiko-hibiki-download
+
+響 - HiBiKi Radio Station の番組をダウンロードし、S3へアップロードする。
+通常は `lambdiko-program-search` から渡されるイベントパラメータで実行するが、単独で手動実行も可能。
+
+#### イベントパラメータ
+
+- `station_id` 放送局ID
+  - `HiBiKi` 固定
+  - ファイル名にのみ使用
+- `ft` 開始時刻 ( `YYYYMMDDHHmmss` )
+  - ファイル名にのみ使用
+- `to` Video ID
+  - 響 API は番組終了時刻の情報を提供していないため、`to` フィールドは Video ID の受け渡しに転用している。
+- `title` カスタムタイトル（ファイル名に使用）
+- `metadata` ID3タグ メタデータ
+  - `title`
+  - `artist`
+  - `album`
+  - `album_artist`
+  - `date`
+  - `comment`
+  - `img` （URLを指定）
+
+#### 実行例
+
+[event.json の例](./events/hibiki-download.json)
