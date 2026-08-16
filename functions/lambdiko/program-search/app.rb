@@ -316,10 +316,17 @@ def main(event, context)
     LOGGER.info(
       "Download requested -> #{download_func_name}: #{JSON.generate(program, ascii_only: false)}"
     )
+
+    if mode == :hibiki
+      notify_program_title = "#{program[:title]} #{program[:metadata][:title]}"
+    else
+      notify_program_title = program[:metadata][:title]
+    end
+
     send_notify(
       status: :info,
       description:
-        "#{program[:metadata][:title]}\n#{program[:station_id]} / #{program[:ft]}-#{program[:to]}"
+        "#{notify_program_title}\n#{program[:station_id]} / #{program[:ft]}-#{program[:to]}"
     )
   end
 end
