@@ -4,6 +4,9 @@ Description: >
   Lambdiko - IP simulcast radio download tools for AWS Lambda
 
 Parameters:
+  StackName:
+    Type: String
+    Default: lambdiko
   BucketName:
     Type: String
     Default: radiko-download
@@ -28,12 +31,13 @@ Resources:
   RadikoDownloadFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: lambdiko-radiko-download
+      FunctionName: !Sub '${StackName}-radiko-download'
       CodeUri: radiko-download/
       MemorySize: 512
       Timeout: 600
       Layers:
         - !Ref FFmpegLayer
+        - !Ref LambdikoCoreLayer
       Environment:
         Variables:
           BUCKET_NAME: !Ref BucketName
@@ -49,12 +53,35 @@ Resources:
   RadiruDownloadFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: lambdiko-radiru-download
+      FunctionName: !Sub '${StackName}-radiru-download'
       CodeUri: radiru-download/
       MemorySize: 512
       Timeout: 600
       Layers:
         - !Ref FFmpegLayer
+        - !Ref LambdikoCoreLayer
+      Environment:
+        Variables:
+          BUCKET_NAME: !Ref BucketName
+      Policies:
+        - S3WritePolicy:
+            BucketName: !Ref BucketName
+        - Statement:
+            - Effect: Allow
+              Action:
+                - sns:Publish
+              Resource: !Ref NotifySnsTopicArn
+
+  HibikiDownloadFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub '${StackName}-hibiki-download'
+      CodeUri: hibiki-download/
+      MemorySize: 512
+      Timeout: 600
+      Layers:
+        - !Ref FFmpegLayer
+        - !Ref LambdikoCoreLayer
       Environment:
         Variables:
           BUCKET_NAME: !Ref BucketName
@@ -70,7 +97,7 @@ Resources:
   ProgramSearchFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: lambdiko-program-search
+      FunctionName: !Sub '${StackName}-program-search'
       CodeUri: program-search/
       MemorySize: 128
       Timeout: 60
@@ -78,11 +105,14 @@ Resources:
         Variables:
           RADIKO_DL_FUNC_NAME: !GetAtt RadikoDownloadFunction.Arn
           RADIRU_DL_FUNC_NAME: !GetAtt RadiruDownloadFunction.Arn
+          HIBIKI_DL_FUNC_NAME: !GetAtt HibikiDownloadFunction.Arn
       Policies:
         - LambdaInvokePolicy:
             FunctionName: !Ref RadikoDownloadFunction
         - LambdaInvokePolicy:
             FunctionName: !Ref RadiruDownloadFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref HibikiDownloadFunction
         - Statement:
             - Effect: Allow
               Action:
@@ -92,11 +122,22 @@ Resources:
   FFmpegLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
-      LayerName: ffmpeg-layer
+      LayerName: !Sub '${StackName}-ffmpeg-layer'
       Description: FFmpeg binary
       ContentUri: layers/
       CompatibleRuntimes:
         - ruby3.4
+
+  LambdikoCoreLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: !Sub '${StackName}-core-layer'
+      Description: Lambdiko shared Ruby library
+      ContentUri: layers/ruby/
+      CompatibleRuntimes:
+        - ruby3.4
+    Metadata:
+      BuildMethod: ruby3.4
 
 Outputs:
   RadikoDownloadFunction:
@@ -106,6 +147,10 @@ Outputs:
   RadiruDownloadFunction:
     Description: RadiruDownload Lambda Function ARN
     Value: !GetAtt RadiruDownloadFunction.Arn
+
+  HibikiDownloadFunction:
+    Description: HibikiDownload Lambda Function ARN
+    Value: !GetAtt HibikiDownloadFunction.Arn
 
   ProgramSearchFunction:
     Description: ProgramSearch Lambda Function ARN

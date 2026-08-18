@@ -6,6 +6,7 @@ IPサイマルラジオ ダウンロードツール for AWS Lambda
 
 - radiko タイムフリー
 - NHKラジオ らじる★らじる 聴き逃し番組
+- 響 - HiBiKi Radio Station
 
 ## 動作環境
 
@@ -13,6 +14,7 @@ IPサイマルラジオ ダウンロードツール for AWS Lambda
   - arm64 アーキテクチャ
   - Ruby 3.4 ランタイム
 - AWS SAM CLI（デプロイ時）
+- Ruby 3.4（ローカルテスト時）
 
 ## デプロイ
 
@@ -22,13 +24,47 @@ IPサイマルラジオ ダウンロードツール for AWS Lambda
 
 ### デプロイ
 
+`samconfig.toml` に本番（`default`）と開発（`dev`）の2環境を定義している。
+初回デプロイ前に `samconfig.toml` の各パラメータを環境に合わせて編集すること。
+
+#### 本番環境
+
+- スタック名： `lambdiko`
+- 関数名： `lambdiko-*`
+
 ```bash
 sam build
+sam deploy
+```
+
+#### 開発環境
+
+- スタック名： `lambdiko-dev`
+- 関数名： `lambdiko-dev-*`
+
+```bash
+sam build
+sam deploy --config-env dev
+```
+
+開発環境の確認が終わったら、以下で削除する。
+
+```bash
+sam delete --stack-name lambdiko-dev
+```
+
+初回デプロイ時など、対話形式で設定したい場合は `--guided` を付けて実行する。
+
+```bash
 sam deploy --guided
+sam deploy --guided --config-env dev
 ```
 
 ### パラメータ
 
+- StackName
+  - Lambda 関数名・レイヤー名のプレフィックス
+  - `samconfig.toml` で環境ごとに自動設定される
 - BucketName
   - 音声ファイルの保存先 S3 バケット名
 - LogGroupName
@@ -36,6 +72,56 @@ sam deploy --guided
 - NotifySnsTopicArn
   - ダウンロード完了通知 送信先SNSトピックARN
     - [discord-notify](../discord-notify/) をデプロイし、出力される `DiscordNotifyFunctionArn` を指定する想定
+
+## ローカルテスト
+
+### RSpec（ユニットテスト）
+
+Lambda Layer の共通ライブラリ（`layers/ruby/lambdiko/`）に対するユニットテストを RSpec で実行する。
+
+```bash
+bundle install
+bundle exec rspec
+```
+
+テスト対象：
+
+- `spec/lambdiko/metadata_spec.rb`
+  - `parse_metadata_date`
+  - `build_metadata_options`
+  - `build_artwork_option`
+- `spec/lambdiko/s3_spec.rb`
+  - `upload_to_s3`
+- `spec/lambdiko/ffmpeg_spec.rb`
+  - `run_ffmpeg`
+  - `probe_duration`
+
+### sam local invoke
+
+`env.json.example` をコピーして環境変数を設定し、`sam local invoke` で実行する。
+
+```bash
+cp env.json.example env.json
+# env.json 内の BUCKET_NAME および SNS_TOPIC_ARN を実際の値に書き換える
+
+sam build
+
+sam local invoke RadikoDownloadFunction \
+  --event events/radiko-download.json \
+  --env-vars env.json
+
+sam local invoke RadiruDownloadFunction \
+  --event events/radiru-download.json \
+  --env-vars env.json
+
+sam local invoke HibikiDownloadFunction \
+  --event events/hibiki-download.json \
+  --env-vars env.json
+
+sam local invoke ProgramSearchFunction \
+  --event events/program-search-radiko.json \
+  --env-vars env.json
+```
 
 ## 機能・使用方法
 
@@ -47,6 +133,8 @@ sam deploy --guided
   - radiko タイムフリー ダウンロード
 - lambdiko-radiru-download
   - らじる★らじる 聴き逃し番組 ダウンロード
+- lambdiko-hibiki-download
+  - 響 - HiBiKi Radio Station ダウンロード
 
 ### lambdiko-program-search
 
@@ -57,11 +145,13 @@ sam deploy --guided
 - `station_id` 放送局ID
   - radiko： `TBS`, `QRR`, `FMT` など
   - らじる： `NHK` 固定
+  - 響： `HIBIKI` 固定
 - `week` 検索対象曜日
   - `sun`, `mon`, `tue`, `wed`, `thu`, `fri`, `sat`
 - `target` 検索対象フィールド
   - radiko： `title`, `pfm`, `desc`, `info`
   - らじる： `title` のみ指定可能
+  - 響： `name`, `description`, `cast` など
 - `keyword` 検索キーワード
 - `title` カスタムタイトル（省略可）
   - 保存時のファイル名に反映される。同じ番組を定期録音する場合に、ファイル名を揃えることができる。省略時は番組表から取得した番組タイトルをファイル名に使用する。
@@ -152,3 +242,31 @@ radiko タイムフリー番組をダウンロードし、S3へアップロー�
 #### 実行例
 
 [event.json の例](./events/radiru-download.json)
+
+### lambdiko-hibiki-download
+
+響 - HiBiKi Radio Station の番組をダウンロードし、S3へアップロードする。
+通常は `lambdiko-program-search` から渡されるイベントパラメータで実行するが、単独で手動実行も可能。
+
+#### イベントパラメータ
+
+- `station_id` 放送局ID
+  - `HiBiKi` 固定
+  - ファイル名にのみ使用
+- `ft` 開始時刻 ( `YYYYMMDDHHmmss` )
+  - ファイル名にのみ使用
+- `to` Video ID
+  - 響 API は番組終了時刻の情報を提供していないため、`to` フィールドは Video ID の受け渡しに転用している。
+- `title` カスタムタイトル（ファイル名に使用）
+- `metadata` ID3タグ メタデータ
+  - `title`
+  - `artist`
+  - `album`
+  - `album_artist`
+  - `date`
+  - `comment`
+  - `img` （URLを指定）
+
+#### 実行例
+
+[event.json の例](./events/hibiki-download.json)
