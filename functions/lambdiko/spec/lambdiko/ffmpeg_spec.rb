@@ -37,6 +37,8 @@ RSpec.describe 'Lambdiko::FFmpeg' do
           'title=テスト',
           '-c',
           'copy',
+          '-bsf:a',
+          'aac_adtstoasc',
           output_path
         )
       end
@@ -72,6 +74,8 @@ RSpec.describe 'Lambdiko::FFmpeg' do
             'title=テスト',
             '-c',
             'copy',
+            '-bsf:a',
+            'aac_adtstoasc',
             output_path
           )
         end
